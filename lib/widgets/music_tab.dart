@@ -62,14 +62,30 @@ class _MusicTabState extends State<MusicTab> {
 
   void _playSong(int index) async {
     if (AudioService.playlist == null) return;
-    try {
-      AudioService.currentSong = _songs[index];
-      widget.onSongPlayed();
-      await AudioService.audioPlayer.setAudioSource(AudioService.playlist!, initialIndex: index);
-      await AudioService.audioPlayer.play();
-    } catch (e) {
-      debugPrint("Error playing song: $e");
+
+    final isSameSong = AudioService.currentSong?.id == _songs[index].id;
+    final isPlaying = AudioService.audioPlayer.playing;
+
+    if (isSameSong) {
+      if (isPlaying) {
+        await AudioService.audioPlayer.pause();
+      } else {
+        await AudioService.audioPlayer.play();
+      }
+    } else {
+      try {
+        AudioService.currentSong = _songs[index];
+        widget.onSongPlayed();
+        await AudioService.audioPlayer
+            .setAudioSource(AudioService.playlist!, initialIndex: index);
+        await AudioService.audioPlayer.play();
+      } catch (e) {
+        debugPrint("Error playing song: $e");
+      }
     }
+
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -104,40 +120,48 @@ class _MusicTabState extends State<MusicTab> {
           }
           if (_songs.isEmpty) {
             return const Center(
-                child: Text("No songs found.", style: TextStyle(color: Colors.white)));
+                child: Text("No songs found.",
+                    style: TextStyle(color: Colors.white)));
           }
-          return StreamBuilder<PlayerState>(
-            stream: AudioService.audioPlayer.playerStateStream,
-            builder: (context, snapshot) {
-              final playerState = snapshot.data;
-              final isPlaying = playerState?.playing ?? false;
-              
-              return ListView.builder(
-                itemCount: _songs.length,
-                itemBuilder: (context, index) {
-                  final song = _songs[index];
-                  final isCurrentSong = AudioService.currentSong?.id == song.id;
 
-                  return ListTile(
-                    leading: QueryArtworkWidget(
-                      id: song.id,
-                      type: ArtworkType.AUDIO,
-                      nullArtworkWidget:
-                          const Icon(Icons.music_note, color: Colors.grey),
-                    ),
-                    title: Text(song.title,
-                        style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(song.artist ?? 'Unknown',
-                        style: const TextStyle(color: Colors.white70)),
-                    trailing: isCurrentSong && isPlaying
-                        ? const Icon(Icons.pause_circle_filled, color: Colors.white, size: 30)
-                        : const Icon(Icons.play_circle_filled, color: Colors.white, size: 30),
-                    onTap: () => _playSong(index),
-                  );
-                },
-              );
-            }
-          );
+          return StreamBuilder<int?>(
+              stream: AudioService.audioPlayer.currentIndexStream,
+              builder: (context, snapshot) {
+                final currentIndex = snapshot.data;
+                final isPlaying = AudioService.audioPlayer.playing;
+
+                if (currentIndex != null && currentIndex < _songs.length) {
+                  AudioService.currentSong = _songs[currentIndex];
+                }
+
+                return ListView.builder(
+                  itemCount: _songs.length,
+                  itemBuilder: (context, index) {
+                    final song = _songs[index];
+                    final isCurrentSong =
+                        AudioService.currentSong?.id == song.id;
+
+                    return ListTile(
+                      leading: QueryArtworkWidget(
+                        id: song.id,
+                        type: ArtworkType.AUDIO,
+                        nullArtworkWidget:
+                            const Icon(Icons.music_note, color: Colors.grey),
+                      ),
+                      title: Text(song.title,
+                          style: const TextStyle(color: Colors.white)),
+                      subtitle: Text(song.artist ?? 'Unknown',
+                          style: const TextStyle(color: Colors.white70)),
+                      trailing: isCurrentSong && isPlaying
+                          ? const Icon(Icons.pause_circle_filled,
+                              color: Colors.white, size: 30)
+                          : const Icon(Icons.play_circle_filled,
+                              color: Colors.white, size: 30),
+                      onTap: () => _playSong(index),
+                    );
+                  },
+                );
+              });
         }),
       ),
     );
