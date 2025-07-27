@@ -20,17 +20,26 @@ dependencies:
   flutter_iconpicker: ^4.0.1
   device_info_plus: ^10.1.0
   on_audio_query: ^2.9.0
+  lottie: ^2.7.0 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/image/
+    - assets/image/logo.png
+    - assets/fitx.json
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/image/launcherlogo.png"
+
 
   fonts:
     - family: squid

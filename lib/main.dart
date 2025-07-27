@@ -4,6 +4,9 @@ import 'package:my_firstapp/screens/stopwatch_screen.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:lottie/lottie.dart';
+import 'dart:async';
+import 'package:my_firstapp/screens/splash.dart';
 
 void main() => runApp(const MyApp());
 
@@ -16,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Exercise Tracker',
-      home: const HomePage(),
+      home: SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -91,16 +94,21 @@ class _HomePageState extends State<HomePage> {
 
   Widget buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.only(top: 40, left: 20, right: 20, bottom: 10),
+      padding: const EdgeInsets.only(top: 0, left: 20, right: 20, bottom: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const CircleAvatar(
-              backgroundColor: Colors.black,
-              child: Icon(Icons.arrow_back, color: Colors.white)),
-          const Text("FIT-X",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-          const Icon(Icons.calendar_today),
+          Image.asset(
+            'assets/image/logo.png',
+            width: 130,
+            height: 130,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 130),
+            child:
+                const Icon(Icons.calendar_today, color: Colors.black, size: 30),
+          ),
+          //avatar
           CircleAvatar(
               backgroundColor: Colors.grey[300],
               child: const Icon(Icons.person, color: Colors.black)),
@@ -296,7 +304,10 @@ class _HomePageState extends State<HomePage> {
               ),
               IconButton(
                 iconSize: 32,
-                icon: Icon(isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                icon: Icon(
+                    isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
                     color: Colors.white),
                 onPressed: () {
                   isPlaying
@@ -336,5 +347,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-
