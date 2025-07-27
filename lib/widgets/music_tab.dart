@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:my_firstapp/main.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -146,16 +147,16 @@ class _MusicTabState extends State<MusicTab> {
                         id: song.id,
                         type: ArtworkType.AUDIO,
                         nullArtworkWidget:
-                            const Icon(Icons.music_note, color: Colors.grey),
+                            const Icon(Iconsax.musicnote, color: Colors.grey),
                       ),
                       title: Text(song.title,
                           style: const TextStyle(color: Colors.white)),
                       subtitle: Text(song.artist ?? 'Unknown',
                           style: const TextStyle(color: Colors.white70)),
                       trailing: isCurrentSong && isPlaying
-                          ? const Icon(Icons.pause_circle_filled,
+                          ? const Icon(Iconsax.pause_circle,
                               color: Colors.white, size: 30)
-                          : const Icon(Icons.play_circle_filled,
+                          : const Icon(Iconsax.play_circle,
                               color: Colors.white, size: 30),
                       onTap: () => _playSong(index),
                     );

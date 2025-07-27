@@ -1,12 +1,11 @@
-// Complete and fixed version of your Flutter app code
-
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:my_firstapp/screens/goal_screen.dart';
 import 'package:my_firstapp/screens/stopwatch_screen.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:lottie/lottie.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:my_firstapp/screens/splash.dart';
@@ -23,6 +22,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Exercise Tracker',
+      theme: ThemeData.light()
+          .copyWith(textTheme: GoogleFonts.montserratTextTheme()),
       home: SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
@@ -120,11 +121,11 @@ class _HomePageState extends State<HomePage> {
           ),
           const Padding(
             padding: EdgeInsets.only(left: 130),
-            child: Icon(Icons.calendar_today, color: Colors.black, size: 30),
+            child: Icon(Iconsax.calendar, color: Colors.black, size: 30),
           ),
           CircleAvatar(
             backgroundColor: Colors.grey[300],
-            child: const Icon(Icons.person, color: Colors.black),
+            child: const Icon(Iconsax.user, color: Colors.black),
           ),
         ],
       ),
@@ -233,12 +234,12 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.white),
+                            icon:
+                                const Icon(Iconsax.edit_2, color: Colors.white),
                             onPressed: () => editGoal(name),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.play_arrow,
-                                color: Colors.white),
+                            icon: const Icon(Iconsax.play, color: Colors.white),
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -252,7 +253,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       )
                     : IconButton(
-                        icon: const Icon(Icons.timer, color: Colors.white),
+                        icon: const Icon(Iconsax.timer_1, color: Colors.white),
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -349,9 +350,9 @@ class _HomePageState extends State<HomePage> {
       clipBehavior: Clip.none,
       children: [
         Container(
-          margin: const EdgeInsets.all(16),
+          margin: const EdgeInsets.all(10),
           padding:
-              const EdgeInsets.only(left: 80, right: 24, top: 18, bottom: 18),
+              const EdgeInsets.only(left: 18, right: 18, top: 18, bottom: 18),
           decoration: BoxDecoration(
             color: Colors.grey[900],
             borderRadius: BorderRadius.circular(30),
@@ -390,11 +391,11 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 12),
                     // Playback controls
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
                           iconSize: 36,
-                          icon: const Icon(Icons.skip_previous,
+                          icon: const Icon(Iconsax.previous,
                               color: Colors.white70),
                           onPressed: () =>
                               AudioService.audioPlayer.seekToPrevious(),
@@ -403,8 +404,8 @@ class _HomePageState extends State<HomePage> {
                           iconSize: 44,
                           icon: Icon(
                             isPlaying
-                                ? Icons.pause_circle_filled
-                                : Icons.play_circle_fill,
+                                ? Iconsax.pause_circle
+                                : Iconsax.play_circle,
                             color: Colors.white,
                           ),
                           onPressed: () {
@@ -415,8 +416,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         IconButton(
                           iconSize: 36,
-                          icon: const Icon(Icons.skip_next,
-                              color: Colors.white70),
+                          icon: const Icon(Iconsax.next, color: Colors.white70),
                           onPressed: () =>
                               AudioService.audioPlayer.seekToNext(),
                         ),
@@ -433,7 +433,7 @@ class _HomePageState extends State<HomePage> {
           top: -10,
           left: 16,
           child: FutureBuilder<Uint8List?>(
-            future: getAlbumArt(song!.id),
+            future: getAlbumArt(song.id),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const SizedBox(
@@ -475,7 +475,7 @@ class _HomePageState extends State<HomePage> {
                     border: Border.all(color: Colors.grey[800]!, width: 6),
                     color: Colors.grey[700],
                   ),
-                  child: const Icon(Icons.music_note, color: Colors.white),
+                  child: const Icon(Iconsax.musicnote, color: Colors.white),
                 );
               }
             },
