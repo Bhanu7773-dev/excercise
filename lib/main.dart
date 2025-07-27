@@ -1,3 +1,5 @@
+// Complete and fixed version of your Flutter app code
+
 import 'package:flutter/material.dart';
 import 'package:my_firstapp/screens/goal_screen.dart';
 import 'package:my_firstapp/screens/stopwatch_screen.dart';
@@ -6,7 +8,9 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lottie/lottie.dart';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:my_firstapp/screens/splash.dart';
+import 'package:marquee/marquee.dart';
 
 void main() => runApp(const MyApp());
 
@@ -29,6 +33,16 @@ class AudioService {
   static final AudioPlayer audioPlayer = AudioPlayer();
   static SongModel? currentSong;
   static ConcatenatingAudioSource? playlist;
+}
+
+Future<Uint8List?> getAlbumArt(int songId) async {
+  final OnAudioQuery query = OnAudioQuery();
+  bool permission = await query.permissionsStatus();
+  if (!permission) await query.permissionsRequest();
+  return await query.queryArtwork(
+    songId,
+    ArtworkType.AUDIO,
+  );
 }
 
 class HomePage extends StatefulWidget {
@@ -72,8 +86,9 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () {
               final newGoal = int.tryParse(controller.text);
@@ -103,15 +118,14 @@ class _HomePageState extends State<HomePage> {
             width: 130,
             height: 130,
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 130),
-            child:
-                const Icon(Icons.calendar_today, color: Colors.black, size: 30),
+          const Padding(
+            padding: EdgeInsets.only(left: 130),
+            child: Icon(Icons.calendar_today, color: Colors.black, size: 30),
           ),
-          //avatar
           CircleAvatar(
-              backgroundColor: Colors.grey[300],
-              child: const Icon(Icons.person, color: Colors.black)),
+            backgroundColor: Colors.grey[300],
+            child: const Icon(Icons.person, color: Colors.black),
+          ),
         ],
       ),
     );
@@ -123,10 +137,14 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Fitness Tracking",
-              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
-          Text("with FIT-X ",
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          Text(
+            "Fitness Tracking",
+            style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            "with FIT-X ",
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -135,8 +153,10 @@ class _HomePageState extends State<HomePage> {
   Widget buildQuote() {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Text("“The only bad workout is the one that didn’t happen.”",
-          style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic)),
+      child: Text(
+        "“The only bad workout is the one that didn’t happen.”",
+        style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
+      ),
     );
   }
 
@@ -166,8 +186,10 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: const StadiumBorder(),
         ),
-        child: Text(label,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -179,8 +201,9 @@ class _HomePageState extends State<HomePage> {
         margin: const EdgeInsets.only(top: 20),
         width: double.infinity,
         decoration: const BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+          color: Colors.black,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
         child: ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: exercises.length,
@@ -190,31 +213,40 @@ class _HomePageState extends State<HomePage> {
             return Card(
               color: Colors.grey[900],
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
+                borderRadius: BorderRadius.circular(15),
+              ),
               child: ListTile(
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                title: Text(name,
-                    style: const TextStyle(color: Colors.white, fontSize: 18)),
+                title: Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                ),
                 subtitle: isGoal
-                    ? Text("Goal: ${exerciseGoals[name]} reps",
-                        style: const TextStyle(color: Colors.white70))
+                    ? Text(
+                        "Goal: ${exerciseGoals[name]} reps",
+                        style: const TextStyle(color: Colors.white70),
+                      )
                     : null,
                 trailing: isGoal
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white),
-                              onPressed: () => editGoal(name)),
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            onPressed: () => editGoal(name),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.play_arrow,
                                 color: Colors.white),
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => GoalScreen(
-                                      name: name, goal: exerciseGoals[name]!)),
+                                builder: (_) => GoalScreen(
+                                  name: name,
+                                  goal: exerciseGoals[name]!,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -224,7 +256,8 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => StopwatchScreen(exercise: name)),
+                            builder: (_) => StopwatchScreen(exercise: name),
+                          ),
                         ),
                       ),
               ),
@@ -242,8 +275,10 @@ class _HomePageState extends State<HomePage> {
       case SelectedPill.status:
         return const Expanded(
           child: Center(
-            child: Text("Weekly Routine Coming Soon...",
-                style: TextStyle(fontSize: 20)),
+            child: Text(
+              "Weekly Routine Coming Soon...",
+              style: TextStyle(fontSize: 20),
+            ),
           ),
         );
       case SelectedPill.music:
@@ -256,93 +291,214 @@ class _HomePageState extends State<HomePage> {
   Widget buildMusicBar() {
     if (AudioService.currentSong == null) return const SizedBox.shrink();
 
-    return StreamBuilder<PlayerState>(
-      stream: AudioService.audioPlayer.playerStateStream,
-      builder: (context, snapshot) {
-        final playerState = snapshot.data;
-        final isPlaying = playerState?.playing ?? false;
-        final processingState = playerState?.processingState;
+    return Container(
+      width: double.infinity,
+      color: Colors.black,
+      child: StreamBuilder<PlayerState>(
+        stream: AudioService.audioPlayer.playerStateStream,
+        builder: (context, snapshot) {
+          final playerState = snapshot.data;
+          final isPlaying = playerState?.playing ?? false;
+          final processingState = playerState?.processingState;
 
-        if (processingState == ProcessingState.loading ||
-            processingState == ProcessingState.buffering) {
-          return Container(
-            color: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                ),
-                SizedBox(width: 15),
-                Text("Loading...", style: TextStyle(color: Colors.white)),
-              ],
+          if (processingState == ProcessingState.loading ||
+              processingState == ProcessingState.buffering) {
+            return loadingWidget();
+          }
+
+          return musicControlWidget(isPlaying);
+        },
+      ),
+    );
+  }
+
+  Widget loadingWidget() => Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             ),
-          );
-        }
+            SizedBox(width: 15),
+            Text("Loading...", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+      );
 
-        return Container(
-          color: Colors.black,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  Widget musicControlWidget(bool isPlaying) {
+    final song = AudioService.currentSong;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding:
+              const EdgeInsets.only(left: 80, right: 24, top: 18, bottom: 18),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
           child: Row(
             children: [
-              const Icon(Icons.music_note, color: Colors.white),
-              const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  AudioService.currentSong!.title,
-                  style: const TextStyle(color: Colors.white),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Song title
+                    SizedBox(
+                      height: 20,
+                      child: Marquee(
+                        text: song!.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                        blankSpace: 40,
+                        velocity: 25,
+                        fadingEdgeStartFraction: 0.1,
+                        fadingEdgeEndFraction: 0.1,
+                        startAfter: Duration(seconds: 1),
+                        pauseAfterRound: Duration(seconds: 1),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Playback controls
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          iconSize: 36,
+                          icon: const Icon(Icons.skip_previous,
+                              color: Colors.white70),
+                          onPressed: () =>
+                              AudioService.audioPlayer.seekToPrevious(),
+                        ),
+                        IconButton(
+                          iconSize: 44,
+                          icon: Icon(
+                            isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_fill,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            isPlaying
+                                ? AudioService.audioPlayer.pause()
+                                : AudioService.audioPlayer.play();
+                          },
+                        ),
+                        IconButton(
+                          iconSize: 36,
+                          icon: const Icon(Icons.skip_next,
+                              color: Colors.white70),
+                          onPressed: () =>
+                              AudioService.audioPlayer.seekToNext(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.skip_previous, color: Colors.white),
-                onPressed: () => AudioService.audioPlayer.seekToPrevious(),
-              ),
-              IconButton(
-                iconSize: 32,
-                icon: Icon(
-                    isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled,
-                    color: Colors.white),
-                onPressed: () {
-                  isPlaying
-                      ? AudioService.audioPlayer.pause()
-                      : AudioService.audioPlayer.play();
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.skip_next, color: Colors.white),
-                onPressed: () => AudioService.audioPlayer.seekToNext(),
               ),
             ],
           ),
-        );
-      },
+        ),
+        // Positioned album art (overlapping)
+        Positioned(
+          top: -10,
+          left: 16,
+          child: FutureBuilder<Uint8List?>(
+            future: getAlbumArt(song!.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                );
+              }
+              if (snapshot.hasData && snapshot.data != null) {
+                return Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[800]!, width: 6),
+                    color: Colors.grey[700],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: MemoryImage(snapshot.data!),
+                    ),
+                  ),
+                );
+              } else {
+                return Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[800]!, width: 6),
+                    color: Colors.grey[700],
+                  ),
+                  child: const Icon(Icons.music_note, color: Colors.white),
+                );
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildTopBar(),
-            buildHeading(),
-            buildQuote(),
-            const SizedBox(height: 10),
-            buildPills(),
-            buildContentArea(),
-            buildMusicBar(),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildTopBar(),
+          buildHeading(),
+          buildQuote(),
+          buildPills(),
+          buildContentArea(),
+          buildMusicBar(),
+        ],
       ),
     );
   }
