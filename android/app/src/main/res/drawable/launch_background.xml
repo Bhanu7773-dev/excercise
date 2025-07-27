@@ -1,5 +1,5 @@
 <!-- android/app/src/main/res/drawable/launch_background.xml -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Remove or comment out the drawable/logo background -->
-    <item android:drawable="@android:color/black"/> <!-- Or match your splash background -->
+    <item android:drawable="@android:color/white"/> <!-- Or match your splash background -->
 </layer-list>

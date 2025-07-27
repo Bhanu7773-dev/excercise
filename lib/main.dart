@@ -220,7 +220,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       )
                     : IconButton(
-                        icon: const Icon(Icons.play_arrow, color: Colors.white),
+                        icon: const Icon(Icons.timer, color: Colors.white),
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
