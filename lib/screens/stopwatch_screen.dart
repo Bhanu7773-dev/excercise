@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../model/exercise_data.dart';
+import '../model/exercise_status_provider.dart';
 
 class StopwatchScreen extends StatefulWidget {
   final String exercise;
@@ -47,13 +50,39 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
     });
   }
 
+  void _complete() {
+    if (_stopwatch.elapsed.inSeconds == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please record some time before completing!')),
+      );
+      return;
+    }
+
+    final completedExercise = Exercise(
+      name: widget.exercise,
+      isTimeBased: true,
+      totalReps: 0,
+      totalDuration: _stopwatch.elapsed,
+      lastCompleted: DateTime.now(),
+    );
+
+    Provider.of<ExerciseStatusProvider>(context, listen: false)
+        .addCompletedExercise(completedExercise);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Time-based exercise recorded!')),
+    );
+
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        iconTheme:
-            const IconThemeData(color: Colors.white), // back button color
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.exercise,
           style: const TextStyle(color: Colors.white),
@@ -97,6 +126,16 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
                     const Text('Reset', style: TextStyle(color: Colors.black)),
               ),
             ],
+          ),
+          const SizedBox(height: 40),
+          ElevatedButton(
+            onPressed: _complete,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
+            child: const Text('Complete'),
           ),
         ],
       ),

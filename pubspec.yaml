@@ -25,6 +25,7 @@ dependencies:
   google_fonts: ^6.2.1
   iconsax_flutter: ^1.0.1
   strange_icons: ^0.0.2
+  fl_chart: ^0.66.0
 
 dev_dependencies:
   flutter_test:

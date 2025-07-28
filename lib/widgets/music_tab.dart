@@ -136,29 +136,120 @@ class _MusicTabState extends State<MusicTab> {
                 }
 
                 return ListView.builder(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: _songs.length,
                   itemBuilder: (context, index) {
                     final song = _songs[index];
                     final isCurrentSong =
                         AudioService.currentSong?.id == song.id;
 
-                    return ListTile(
-                      leading: QueryArtworkWidget(
-                        id: song.id,
-                        type: ArtworkType.AUDIO,
-                        nullArtworkWidget:
-                            const Icon(Iconsax.musicnote, color: Colors.grey),
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isCurrentSong
+                            ? Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.12)
+                            : const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCurrentSong
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.transparent,
+                          width: 1.3,
+                        ),
+                        boxShadow: [
+                          if (isCurrentSong)
+                            BoxShadow(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.07),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                        ],
                       ),
-                      title: Text(song.title,
-                          style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(song.artist ?? 'Unknown',
-                          style: const TextStyle(color: Colors.white70)),
-                      trailing: isCurrentSong && isPlaying
-                          ? const Icon(Iconsax.pause_circle,
-                              color: Colors.white, size: 30)
-                          : const Icon(Iconsax.play_circle,
-                              color: Colors.white, size: 30),
-                      onTap: () => _playSong(index),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 14),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: QueryArtworkWidget(
+                            id: song.id,
+                            type: ArtworkType.AUDIO,
+                            nullArtworkWidget: Container(
+                              width: 48,
+                              height: 48,
+                              color: const Color(0xFF232323),
+                              child: const Icon(Iconsax.musicnote,
+                                  color: Colors.grey, size: 26),
+                            ),
+                            artworkWidth: 48,
+                            artworkHeight: 48,
+                          ),
+                        ),
+                        title: Text(song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: isCurrentSong
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              fontSize: 16,
+                            )),
+                        subtitle: Text(song.artist ?? 'Unknown',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isCurrentSong
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.white70,
+                              fontWeight: isCurrentSong
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              fontSize: 13,
+                            )),
+                        trailing: GestureDetector(
+                          onTap: () => _playSong(index),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isCurrentSong
+                                  ? Theme.of(context).colorScheme.primary
+                                  : const Color(0xFF232323),
+                              boxShadow: [
+                                if (isCurrentSong)
+                                  BoxShadow(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(
+                              isCurrentSong && isPlaying
+                                  ? Iconsax.pause
+                                  : Iconsax.play,
+                              color: isCurrentSong
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                        onTap: () => _playSong(index),
+                      ),
                     );
                   },
                 );
