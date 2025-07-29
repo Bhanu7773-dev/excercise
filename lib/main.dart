@@ -15,10 +15,16 @@ import 'package:fl_chart/fl_chart.dart';
 import '../model/exercise_data.dart';
 import 'package:provider/provider.dart';
 import '../model/exercise_status_provider.dart';
+// Avatar imports
+import '../model/avatar_provider.dart';
+import '../screens/edit_avatar_page.dart';
 
 void main() => runApp(
-      ChangeNotifierProvider(
-        create: (_) => ExerciseStatusProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ExerciseStatusProvider()),
+          ChangeNotifierProvider(create: (_) => AvatarProvider()),
+        ],
         child: const MyApp(),
       ),
     );
@@ -104,6 +110,32 @@ class _HomePageState extends State<HomePage>
     'Burpees',
   ];
 
+  // --- ICON MAPPING FOR EXERCISES ---
+  IconData getExerciseIcon(String name) {
+    switch (name.toLowerCase()) {
+      case 'push ups':
+        return Icons.fitness_center;
+      case 'sit ups':
+        return Icons.self_improvement;
+      case 'squats':
+        return Icons.accessibility_new;
+      case 'plank':
+        return Icons.horizontal_rule;
+      case 'jumping jacks':
+        return Icons.sports_martial_arts; // Or: Icons.directions_run
+      case 'running':
+        return Icons.directions_run;
+      case 'lunges':
+        return Icons.directions_walk;
+      case 'mountain climbers':
+        return Icons.terrain;
+      case 'burpees':
+        return Icons.sports_kabaddi;
+      default:
+        return Icons.sports_gymnastics;
+    }
+  }
+
   void editGoal(String name) async {
     TextEditingController controller =
         TextEditingController(text: exerciseGoals[name].toString());
@@ -182,8 +214,13 @@ class _HomePageState extends State<HomePage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    // Ensure user name is loaded on HomePage startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AvatarProvider>(context, listen: false).loadUserName();
+    });
   }
 
+  // ---- MODIFIED TOP BAR: Avatar icon logic added here ----
   Widget buildTopBar() {
     return Container(
       padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 8),
@@ -219,19 +256,38 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Iconsax.user,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    size: 20,
-                  ),
-                ),
+              // <<<< Avatar Consumer button replaces person icon
+              Consumer<AvatarProvider>(
+                builder: (context, avatarProvider, _) {
+                  final avatarFile = avatarProvider.avatarFile;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const EditAvatarPage()),
+                        );
+                      },
+                      icon: avatarFile != null
+                          ? CircleAvatar(
+                              radius: 18,
+                              backgroundImage: FileImage(avatarFile),
+                              backgroundColor: Colors.transparent,
+                            )
+                          : const CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.transparent,
+                              child: Icon(Icons.person_outline,
+                                  color: Colors.white),
+                            ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -239,71 +295,95 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
+  // ---- END TOP BAR ----
 
   Widget buildHeading() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Fitness Tracking",
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              height: 1.1,
-            ),
-          ),
-          Text(
-            "with FIT-X",
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A2A),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    return Consumer<AvatarProvider>(
+      builder: (context, avatarProvider, _) {
+        final userName = avatarProvider.userName;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Fitness Tracking",
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                  height: 1.1,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Iconsax.quote_up,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    size: 16,
+              Text(
+                "with FIT-X",
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    "The only bad workout is the one that didn't happen.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontStyle: FontStyle.italic,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Iconsax.quote_up,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        size: 16,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (userName != null && userName.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                "$userName, remember:",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          Text(
+                            "The only bad workout is the one that didn't happen.",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -374,6 +454,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // CHANGE: Tilted dumbbell icon for "Your Library" (using Icons.fitness_center with Transform)
   Widget buildMusicLibrary() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -382,16 +463,19 @@ class _HomePageState extends State<HomePage>
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Iconsax.musicnote,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: 16,
+              Transform.rotate(
+                angle: 0.0, // ~-20 degrees
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.music_note,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    size: 18,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -443,7 +527,7 @@ class _HomePageState extends State<HomePage>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  Iconsax.flash,
+                  Icons.fitness_center,
                   color: Theme.of(context).colorScheme.onPrimary,
                   size: 16,
                 ),
@@ -476,6 +560,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // UPDATED: Show correct icon for each exercise
   Widget buildExerciseList() {
     final exercises = [...goalExercises, ...stopwatchExercises];
     return Expanded(
@@ -517,9 +602,9 @@ class _HomePageState extends State<HomePage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            isGoal ? Iconsax.add : Iconsax.timer_1_copy,
+                            getExerciseIcon(name),
                             color: Colors.black,
-                            size: 20,
+                            size: 22,
                           ),
                         ),
                         title: Text(
@@ -856,16 +941,7 @@ class _HomePageState extends State<HomePage>
   }
 }
 
-///
-///
-///workout
-///
-///
-///workout
-//
-
 // StatusTab remains unchanged; it will now always get up-to-date data via the provider.
-
 class StatusTab extends StatefulWidget {
   final List<Exercise> completedExercises;
   final VoidCallback onReset;

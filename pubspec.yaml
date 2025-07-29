@@ -26,6 +26,10 @@ dependencies:
   iconsax_flutter: ^1.0.1
   strange_icons: ^0.0.2
   fl_chart: ^0.66.0
+  provider: ^6.0.5
+  image_picker: ^1.0.7
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +42,7 @@ flutter:
 
   assets:
     - assets/image/logo.png
+    - assets/image/dev_avatar.png
     - assets/fitx.json
 
 flutter_icons:
