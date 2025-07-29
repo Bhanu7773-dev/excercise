@@ -12,6 +12,7 @@ import 'package:my_firstapp/screens/splash.dart';
 import 'package:marquee/marquee.dart';
 import 'package:strange_icons/strange_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../model/exercise_data.dart';
 import 'package:provider/provider.dart';
 import '../model/exercise_status_provider.dart';
@@ -19,17 +20,34 @@ import '../model/exercise_status_provider.dart';
 import '../model/avatar_provider.dart';
 import '../screens/edit_avatar_page.dart';
 
-void main() => runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => ExerciseStatusProvider()),
-          ChangeNotifierProvider(create: (_) => AvatarProvider()),
-        ],
-        child: const MyApp(),
-      ),
-    );
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  Hive.registerAdapter(ExerciseAdapter());
+
+  // Open the box before running the app so providers can use it
+  await Hive.openBox<Exercise>('completed_exercises');
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = ExerciseStatusProvider();
+            provider.init(); // Initialize Hive box inside provider
+            return provider;
+          },
+        ),
+        ChangeNotifierProvider(create: (_) => AvatarProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 enum SelectedPill { connection, status, music }
+
+// ... rest of your code remains unchanged ...
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

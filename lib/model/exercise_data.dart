@@ -1,18 +1,33 @@
-import 'package:flutter/material.dart'; // Only needed if you use Color or other Flutter types
-// Remove provider import: no need for providers in your model
+import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 
-class Exercise {
+part 'exercise_data.g.dart';
+
+@HiveType(typeId: 0)
+class Exercise extends HiveObject {
+  @HiveField(0)
   final String name;
+
+  @HiveField(1)
   final bool isTimeBased;
+
+  @HiveField(2)
   final int totalReps;
-  final Duration totalDuration;
+
+  // Duration cannot be stored directly, so store in seconds
+  @HiveField(3)
+  final int totalDurationSeconds;
+
+  @HiveField(4)
   final DateTime lastCompleted;
 
   Exercise({
     required this.name,
     required this.isTimeBased,
     this.totalReps = 0,
-    this.totalDuration = Duration.zero,
+    Duration totalDuration = Duration.zero,
     required this.lastCompleted,
-  });
+  }) : totalDurationSeconds = totalDuration.inSeconds;
+
+  Duration get totalDuration => Duration(seconds: totalDurationSeconds);
 }
