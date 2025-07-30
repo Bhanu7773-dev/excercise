@@ -26,8 +26,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   SelectedPill selectedPill = SelectedPill.connection;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+  late AnimationController _pillController;
+  late Animation<double> _pillAnim;
 
   Map<String, int> exerciseGoals = {
     'Push Ups': 10,
@@ -132,6 +132,141 @@ class _HomePageState extends State<HomePage>
   bool _isMusicSearching = false;
   String _musicSearchText = '';
 
+  final List<_PillMeta> pills = [
+    _PillMeta("WORKOUT", SelectedPill.connection, Iconsax.flash),
+    _PillMeta("STATUS", SelectedPill.status, Iconsax.chart_2),
+    _PillMeta("MUSIC", SelectedPill.music, Iconsax.musicnote),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pillController = AnimationController(
+      duration: const Duration(milliseconds: 320),
+      vsync: this,
+    );
+    _pillAnim =
+        CurvedAnimation(parent: _pillController, curve: Curves.easeOutCubic);
+    _pillController.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AvatarProvider>(context, listen: false).loadUserName();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pillController.dispose();
+    super.dispose();
+  }
+
+  void _onPillTap(int newIndex) {
+    if (newIndex == pills.indexWhere((p) => p.pill == selectedPill)) return;
+    setState(() {
+      selectedPill = pills[newIndex].pill;
+    });
+  }
+
+  /// --- FIXED BUILD PILLS ---
+  Widget buildPills() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double containerPadding = 4;
+        double totalWidth = constraints.maxWidth - containerPadding * 2;
+        final pillCount = pills.length;
+        final pillWidth = totalWidth / pillCount;
+        final selectedIndex = pills.indexWhere((p) => p.pill == selectedPill);
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          padding: EdgeInsets.all(containerPadding),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                // Animated selector background
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  left: selectedIndex * pillWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: pillWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                // Row of pill buttons
+                Row(
+                  children: pills.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final pillMeta = entry.value;
+                    final isSelected = selectedPill == pillMeta.pill;
+                    return SizedBox(
+                      width: pillWidth,
+                      child: GestureDetector(
+                        onTap: () => _onPillTap(idx),
+                        child: Container(
+                          height: 44,
+                          color: Colors.transparent,
+                          alignment: Alignment.center,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  pillMeta.icon,
+                                  size: 16,
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 4),
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 200),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                  ),
+                                  child: Text(
+                                    pillMeta.label,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   IconData getExerciseIcon(String name) {
     switch (name.toLowerCase()) {
       case 'push ups':
@@ -221,13 +356,34 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  /// Custom animated dialog (pop effect)
+  Future<T?> showAnimatedDialog<T>(BuildContext context, Widget child) {
+    return showGeneralDialog(
+      context: context,
+      barrierLabel: "Edit Goal",
+      barrierDismissible: true,
+      transitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (context, anim1, anim2) => child,
+      transitionBuilder: (context, anim1, anim2, widget) {
+        final curvedValue = Curves.easeOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: curvedValue,
+          child: Opacity(
+            opacity: anim1.value,
+            child: widget,
+          ),
+        );
+      },
+    );
+  }
+
   void editGoal(String name) async {
     TextEditingController controller =
         TextEditingController(text: exerciseGoals[name].toString());
 
-    final updated = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
+    final updated = await showAnimatedDialog<int>(
+      context,
+      AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
@@ -286,22 +442,6 @@ class _HomePageState extends State<HomePage>
         exerciseGoals[name] = updated;
       });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.forward();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AvatarProvider>(context, listen: false).loadUserName();
-    });
   }
 
   Widget buildTopBar() {
@@ -473,73 +613,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget buildPills() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          buildPill("WORKOUT", SelectedPill.connection, Iconsax.flash),
-          buildPill("STATUS", SelectedPill.status, Iconsax.chart_2),
-          buildPill("MUSIC", SelectedPill.music, Iconsax.musicnote),
-        ],
-      ),
-    );
-  }
-
-  Widget buildPill(String label, SelectedPill pill, IconData icon) {
-    bool isSelected = selectedPill == pill;
-    return Expanded(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        child: InkWell(
-          onTap: () {
-            setState(() => selectedPill = pill);
-            _animationController.reset();
-            _animationController.forward();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.onPrimary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget buildMusicLibrary() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -634,7 +707,7 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.connection:
         return Expanded(
           child: FadeTransition(
-            opacity: _fadeAnimation,
+            opacity: _pillAnim,
             child: ExerciseList(
               goalExercises: goalExercises,
               stopwatchExercises: stopwatchExercises,
@@ -647,7 +720,7 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.status:
         return Expanded(
           child: FadeTransition(
-            opacity: _fadeAnimation,
+            opacity: _pillAnim,
             child: Consumer<ExerciseStatusProvider>(
               builder: (context, provider, child) => StatusTab(
                 completedExercises: provider.completedExercises,
@@ -660,7 +733,7 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.music:
         return Expanded(
           child: FadeTransition(
-            opacity: _fadeAnimation,
+            opacity: _pillAnim,
             child: Container(
               margin: const EdgeInsets.only(top: 8, bottom: 0),
               child: Column(
@@ -719,4 +792,11 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
+}
+
+class _PillMeta {
+  final String label;
+  final SelectedPill pill;
+  final IconData icon;
+  const _PillMeta(this.label, this.pill, this.icon);
 }
