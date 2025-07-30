@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'dart:async'; // This should contain HomePage
-import 'package:my_firstapp/main.dart';
+import 'dart:async';
+import 'package:my_firstapp/screens/home_page.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -13,10 +15,10 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    Timer(Duration(seconds: 5), () {
+    Timer(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => HomePage()),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
     });
   }
