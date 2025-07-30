@@ -10,14 +10,17 @@ class GoalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('$name Goal: $goal reps',
-                style: const TextStyle(color: Colors.white, fontSize: 24)),
+                style: TextStyle(color: colorScheme.onBackground, fontSize: 24)),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
@@ -29,7 +32,6 @@ class GoalScreen extends StatelessWidget {
                     totalDuration: Duration.zero,
                     lastCompleted: DateTime.now(),
                   );
-                  // Save to provider
                   Provider.of<ExerciseStatusProvider>(context, listen: false)
                       .addCompletedExercise(completedExercise);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -37,18 +39,19 @@ class GoalScreen extends StatelessWidget {
                       content: Text('Exercise completed and recorded!'),
                     ),
                   );
-                  Navigator.pop(context); // Optionally go back
+                  Navigator.pop(context);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error: ${e.toString()}'),
+                      backgroundColor: colorScheme.error,
                     ),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),

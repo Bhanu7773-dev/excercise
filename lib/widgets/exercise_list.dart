@@ -29,6 +29,8 @@ class _ExerciseListState extends State<ExerciseList> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final exercises = [...widget.goalExercises, ...widget.stopwatchExercises];
     final filteredExercises = _searchText.isEmpty
         ? exercises
@@ -50,11 +52,10 @@ class _ExerciseListState extends State<ExerciseList> {
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B2222),
+                  color: colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.06),
+                    color: colorScheme.outline.withOpacity(0.1),
                   ),
                 ),
                 child: ListTile(
@@ -66,25 +67,20 @@ class _ExerciseListState extends State<ExerciseList> {
                     height: 44,
                     decoration: BoxDecoration(
                       color: isGoal
-                          ? Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.13)
-                          : const Color(0xFFFF6B35).withOpacity(0.18),
+                          ? colorScheme.primary.withOpacity(0.13)
+                          : colorScheme.secondary.withOpacity(0.18),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       widget.getExerciseIcon(name),
-                      color: isGoal
-                          ? Theme.of(context).colorScheme.primary
-                          : const Color(0xFFFF6B35),
+                      color: isGoal ? colorScheme.primary : colorScheme.secondary,
                       size: 26,
                     ),
                   ),
                   title: Text(
                     name,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: colorScheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -94,7 +90,7 @@ class _ExerciseListState extends State<ExerciseList> {
                         ? "Goal: ${widget.exerciseGoals[name]} reps"
                         : "Time-based exercise",
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w400,
                     ),
@@ -105,13 +101,13 @@ class _ExerciseListState extends State<ExerciseList> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF262D2D),
+                                color: colorScheme.surface,
                                 borderRadius: BorderRadius.circular(9),
                               ),
                               child: IconButton(
                                 icon: Icon(
                                   Iconsax.edit_2,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: colorScheme.primary,
                                   size: 20,
                                 ),
                                 onPressed: () => widget.onEditGoal(name),
@@ -125,7 +121,7 @@ class _ExerciseListState extends State<ExerciseList> {
                             const SizedBox(width: 8),
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: colorScheme.primary,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: IconButton(
@@ -139,7 +135,7 @@ class _ExerciseListState extends State<ExerciseList> {
                                     ),
                                   ),
                                 ),
-                                color: Theme.of(context).colorScheme.onPrimary,
+                                color: colorScheme.onPrimary,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
                                   minWidth: 36,
@@ -151,7 +147,7 @@ class _ExerciseListState extends State<ExerciseList> {
                         )
                       : Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF6B35).withOpacity(0.18),
+                            color: colorScheme.secondary.withOpacity(0.18),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
@@ -162,7 +158,7 @@ class _ExerciseListState extends State<ExerciseList> {
                                 builder: (_) => StopwatchScreen(exercise: name),
                               ),
                             ),
-                            color: const Color(0xFFFF6B35),
+                            color: colorScheme.secondary,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
                               minWidth: 36,
@@ -180,10 +176,11 @@ class _ExerciseListState extends State<ExerciseList> {
   }
 
   Widget _buildWorkoutLibrary(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
-      // ALIGN HORIZONTALLY with list: Use left=18 to match ListTile's horizontal:18
-      padding: const EdgeInsets.only(
-          left: 18, right: 12), // left=18, right matches list padding
+      padding: const EdgeInsets.only(left: 18, right: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -192,12 +189,12 @@ class _ExerciseListState extends State<ExerciseList> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(
                   Icons.fitness_center,
-                  color: Theme.of(context).colorScheme.onPrimary,
+                  color: colorScheme.onPrimary,
                   size: 20,
                 ),
               ),
@@ -210,14 +207,14 @@ class _ExerciseListState extends State<ExerciseList> {
                     style: TextStyle(
                       fontSize: 18.5,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     "${widget.goalExercises.length + widget.stopwatchExercises.length} exercises",
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -231,15 +228,21 @@ class _ExerciseListState extends State<ExerciseList> {
                     child: TextField(
                       autofocus: true,
                       onChanged: (val) => setState(() => _searchText = val),
-                      style: const TextStyle(fontSize: 15),
+                      style: TextStyle(fontSize: 15, color: colorScheme.onSurface),
                       decoration: InputDecoration(
                         hintText: "Search exercises...",
+                        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                         isDense: true,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.outline),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.primary),
                         ),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.close, size: 18),
+                          icon: Icon(Icons.close, size: 18, color: colorScheme.onSurfaceVariant),
                           onPressed: () {
                             setState(() {
                               _isSearching = false;
@@ -259,7 +262,7 @@ class _ExerciseListState extends State<ExerciseList> {
                   ),
                 )
               : IconButton(
-                  icon: const Icon(Iconsax.search_normal_1_copy, size: 25),
+                  icon: Icon(Iconsax.search_normal_1_copy, size: 25, color: colorScheme.onSurfaceVariant),
                   onPressed: () => setState(() => _isSearching = true),
                   tooltip: "Search exercises",
                   padding: EdgeInsets.zero,
