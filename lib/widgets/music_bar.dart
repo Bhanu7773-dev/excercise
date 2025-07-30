@@ -18,41 +18,40 @@ class MusicBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use currentIndexStream and access audioPlayer.sequence with .tag as SongModel
-    return StreamBuilder<int?>(
-      stream: audioPlayer.currentIndexStream,
-      builder: (context, snapshot) {
-        final currentIndex = snapshot.data;
-        final sequence = audioPlayer.sequence;
-        SongModel? currentSong;
+    final currentIndex = audioPlayer.currentIndex;
+    final sequence = audioPlayer.sequence;
+    SongModel? currentSong;
 
-        if (currentIndex != null &&
-            currentIndex >= 0 &&
-            currentIndex < sequence.length) {
-          final tag = sequence[currentIndex].tag;
-          if (tag is SongModel) {
-            currentSong = tag;
-          }
-        }
+    if (currentIndex != null &&
+        sequence != null &&
+        currentIndex >= 0 &&
+        currentIndex < sequence.length) {
+      final tag = sequence[currentIndex].tag;
+      if (tag is SongModel) {
+        currentSong = tag;
+      }
+    }
 
-        if (currentSong == null) return const SizedBox.shrink();
+    if (currentSong == null) {
+      return const SizedBox.shrink();
+    }
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                ),
-              ),
-              child: StreamBuilder<PlayerState>(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          decoration: BoxDecoration(
+            color:
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            ),
+          ),
+          child: Stack(
+            children: [
+              StreamBuilder<PlayerState>(
                 stream: audioPlayer.playerStateStream,
                 builder: (context, snapshot) {
                   final playerState = snapshot.data;
@@ -67,10 +66,36 @@ class MusicBar extends StatelessWidget {
                   return musicControlWidget(context, isPlaying, currentSong!);
                 },
               ),
-            ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => audioPlayer.stop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .background
+                            .withOpacity(0.0),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -112,7 +137,7 @@ class MusicBar extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3A3A3A),
+                  color: Theme.of(context).colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                   image: snapshot.hasData && snapshot.data != null
                       ? DecorationImage(
@@ -134,6 +159,7 @@ class MusicBar extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
                   height: 20,

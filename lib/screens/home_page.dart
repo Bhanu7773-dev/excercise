@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
-import '../utils/theme_data.dart'; 
 import 'package:my_firstapp/utils/theme_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:my_firstapp/widgets/music_bar.dart';
@@ -29,7 +30,6 @@ class _HomePageState extends State<HomePage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // --- Data remains the same ---
   Map<String, int> exerciseGoals = {
     'Push Ups': 10, 'Sit Ups': 10, 'Squats': 10, 'Lunges': 10, 'Tricep Dips': 10,
     'Mountain Climbers': 20, 'Burpees': 10, 'Jumping Jacks': 20, 'High Knees': 20,
@@ -63,7 +63,6 @@ class _HomePageState extends State<HomePage>
   ];
   bool _isMusicSearching = false;
   String _musicSearchText = '';
-  // --- End of data ---
 
   @override
   void initState() {
@@ -76,19 +75,24 @@ class _HomePageState extends State<HomePage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AvatarProvider>(context, listen: false).loadUserName();
     });
   }
 
-  /// Displays a dialog to control the app's theme settings.
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   void _showThemeDialog(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        // Use a Consumer to rebuild the dialog contents when the theme changes.
         return Consumer<ThemeProvider>(
           builder: (context, currentThemeProvider, child) {
             final isSystemMode = currentThemeProvider.themeMode == ThemeMode.system;
@@ -111,7 +115,6 @@ class _HomePageState extends State<HomePage>
                     title: Text("Follow System", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                     value: isSystemMode,
                     onChanged: (value) {
-                      // When turning on system mode, default to light if turning off
                       themeProvider.setThemeMode(value ? ThemeMode.system : ThemeMode.light);
                     },
                     activeColor: Theme.of(context).colorScheme.primary,
@@ -121,12 +124,11 @@ class _HomePageState extends State<HomePage>
                       "Dark Mode",
                       style: TextStyle(
                         color: isSystemMode
-                            ? Theme.of(context).colorScheme.outline // Grey out when disabled
+                            ? Theme.of(context).colorScheme.outline
                             : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     value: isDarkMode,
-                    // Disable the switch if system mode is active
                     onChanged: isSystemMode
                         ? null
                         : (value) {
@@ -150,7 +152,6 @@ class _HomePageState extends State<HomePage>
   }
 
   IconData getExerciseIcon(String name) {
-    // This function remains the same
     switch (name.toLowerCase()) {
       case 'push ups': case 'wall push ups': case 'diamond push ups': case 'clapping push ups': case 'spiderman push ups': return Icons.fitness_center;
       case 'sit ups': case 'crunches': case 'bicycle crunches': case 'leg raises': case 'flutter kicks': case 'heel touches': case 'russian twists': case 'v-sit hold': case 'dead bug hold': case 'hollow body hold': case 'boat pose': return Icons.self_improvement;
@@ -424,7 +425,7 @@ class _HomePageState extends State<HomePage>
       child: Row(
         children: [
           buildPill("WORKOUT", SelectedPill.connection, Iconsax.flash),
-          buildPill("STATUS", SelectedPill.status, Iconsax.chart_2), // CORRECTED: Typo
+          buildPill("STATUS", SelectedPill.status, Iconsax.chart_2),
           buildPill("MUSIC", SelectedPill.music, Iconsax.musicnote),
         ],
       ),
@@ -481,7 +482,6 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildMusicLibrary() {
-    // This function remains the same
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -571,7 +571,6 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildContentArea() {
-    // This function remains the same
     switch (selectedPill) {
       case SelectedPill.connection:
         return Expanded(
@@ -626,6 +625,7 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
       extendBody: true,
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -642,17 +642,28 @@ class _HomePageState extends State<HomePage>
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          child: !isKeyboardOpen
-              ? SizedBox(
-                  height: 80,
-                  child: MusicBar(
-                    audioPlayer: AudioService.audioPlayer,
-                    getAlbumArt: getAlbumArt,
-                  ),
-                )
-              : const SizedBox()),
+      bottomNavigationBar: StreamBuilder<PlayerState>(
+        stream: AudioService.audioPlayer.playerStateStream,
+        builder: (context, snapshot) {
+          final playerState = snapshot.data;
+          final isMusicBarVisible = playerState != null &&
+              playerState.processingState != ProcessingState.idle &&
+              playerState.processingState != ProcessingState.completed;
+
+          if (isMusicBarVisible && !isKeyboardOpen) {
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              height: 80,
+              child: MusicBar(
+                audioPlayer: AudioService.audioPlayer,
+                getAlbumArt: getAlbumArt,
+              ),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        },
+      ),
     );
   }
 }
