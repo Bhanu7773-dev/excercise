@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:marquee/marquee.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:my_firstapp/widgets/wavy_progress_bar.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class MusicBar extends StatelessWidget {
@@ -37,17 +38,13 @@ class MusicBar extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16.0),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-            ),
+            color: Colors.black.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(16.0),
           ),
           child: Stack(
             children: [
@@ -77,16 +74,13 @@ class MusicBar extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .background
-                            .withOpacity(0.0),
+                        color: Colors.black.withOpacity(0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.close,
                         size: 16,
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -99,137 +93,115 @@ class MusicBar extends StatelessWidget {
     );
   }
 
-  Widget loadingWidget(BuildContext context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              "Loading...",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+  Widget loadingWidget(BuildContext context) => const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: Colors.white,
+          ),
         ),
       );
 
   Widget musicControlWidget(
       BuildContext context, bool isPlaying, SongModel song) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Row(
-        children: [
-          FutureBuilder<Uint8List?>(
-            future: getAlbumArt(song.id),
-            builder: (context, snapshot) {
-              return Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(12),
-                  image: snapshot.hasData && snapshot.data != null
-                      ? DecorationImage(
-                          fit: BoxFit.cover,
-                          image: MemoryImage(snapshot.data!),
-                        )
-                      : null,
-                ),
-                child: snapshot.hasData && snapshot.data != null
-                    ? null
-                    : Icon(
-                        Iconsax.musicnote,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-              );
-            },
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 20,
-                  child: Marquee(
-                    text: song.title,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                    blankSpace: 40,
-                    velocity: 25,
-                    fadingEdgeStartFraction: 0.1,
-                    fadingEdgeEndFraction: 0.1,
-                    startAfter: const Duration(seconds: 1),
-                    pauseAfterRound: const Duration(seconds: 1),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  song.artist ?? "Unknown Artist",
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+    // Using LayoutBuilder to get the available constraints and prevent overflows.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                iconSize: 20,
-                icon: Icon(
-                  Iconsax.previous,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                onPressed: () => audioPlayer.seekToPrevious(),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  iconSize: 24,
-                  icon: Icon(
-                    isPlaying ? Iconsax.pause : Iconsax.play,
-                    color: Theme.of(context).colorScheme.onPrimary,
+              // Column for Song Title and Artist
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: constraints.maxHeight * 0.25, // Relative height
+                    child: Marquee(
+                      text: song.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        shadows: [Shadow(blurRadius: 2.0, color: Colors.black54)],
+                      ),
+                      blankSpace: 50,
+                      velocity: 30,
+                    ),
                   ),
-                  onPressed: () {
-                    isPlaying ? audioPlayer.pause() : audioPlayer.play();
-                  },
-                ),
+                  Text(
+                    song.artist ?? "Unknown Artist",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
+                      shadows: const [Shadow(blurRadius: 2.0, color: Colors.black54)],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              IconButton(
-                iconSize: 20,
-                icon: Icon(
-                  Iconsax.next,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                onPressed: () => audioPlayer.seekToNext(),
+              // Row for Progress Bar and Controls
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: constraints.maxHeight * 0.3, // Relative height
+                      child: StreamBuilder<Duration>(
+                        stream: audioPlayer.positionStream,
+                        builder: (context, snapshot) {
+                          final position = snapshot.data ?? Duration.zero;
+                          final duration = audioPlayer.duration ?? Duration.zero;
+                          return WavyProgressBar(
+                            progress: (duration.inMilliseconds > 0)
+                                ? position.inMilliseconds / duration.inMilliseconds
+                                : 0.0,
+                            waveColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor: Colors.white.withOpacity(0.3),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Playback Controls
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        iconSize: 22,
+                        splashRadius: 20,
+                        icon: const Icon(Iconsax.previous, color: Colors.white),
+                        onPressed: () => audioPlayer.seekToPrevious(),
+                      ),
+                      // The wrapping container has been removed.
+                      IconButton(
+                        iconSize: 30, // Made icon slightly larger
+                        splashRadius: 24,
+                        icon: Icon(
+                          isPlaying ? Iconsax.pause : Iconsax.play,
+                          color: Colors.white, // Icon color is now white
+                        ),
+                        onPressed: () => isPlaying ? audioPlayer.pause() : audioPlayer.play(),
+                      ),
+                      IconButton(
+                        iconSize: 22,
+                        splashRadius: 20,
+                        icon: const Icon(Iconsax.next, color: Colors.white),
+                        onPressed: () => audioPlayer.seekToNext(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

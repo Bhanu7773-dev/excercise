@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:my_firstapp/widgets/music_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
 import 'package:my_firstapp/utils/theme_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
-import 'package:my_firstapp/widgets/music_bar.dart';
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
 import 'edit_avatar_page.dart';
@@ -75,7 +77,7 @@ class _HomePageState extends State<HomePage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AvatarProvider>(context, listen: false).loadUserName();
     });
@@ -324,90 +326,152 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildHeading() {
-    return Consumer<AvatarProvider>(
-      builder: (context, avatarProvider, _) {
-        final userName = avatarProvider.userName;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Fitness Tracking",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                  height: 1.1,
-                ),
-              ),
-              Text(
-                "with FIT-X",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  height: 1.1,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    final avatarProvider = Provider.of<AvatarProvider>(context, listen: false);
+    final userName = avatarProvider.userName;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Fitness Tracking",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+              height: 1.1,
+            ),
+          ),
+          Text(
+            "with FIT-X",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<PlayerState>(
+            stream: AudioService.audioPlayer.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              final isMusicPlaying = playerState != null &&
+                  playerState.processingState != ProcessingState.idle &&
+                  playerState.processingState != ProcessingState.completed;
+
+              if (isMusicPlaying) {
+                return buildMusicPlayerCard();
+              } else {
+                return buildRememberCard(userName);
+              }
+            },
+          ),
+          const SizedBox(height: 0),
+        ],
+      ),
+    );
+  }
+
+  Widget buildRememberCard(String? userName) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Iconsax.quote_up,
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (userName != null && userName.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      "$userName, remember:",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                Text(
+                  "The only bad workout is the one that didn't happen.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Iconsax.quote_up,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (userName != null && userName.trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                "$userName, remember:",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          Text(
-                            "The only bad workout is the one that didn't happen.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 0),
-            ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildMusicPlayerCard() {
+    final audioPlayer = AudioService.audioPlayer;
+    final currentIndex = audioPlayer.currentIndex;
+    final sequence = audioPlayer.sequence;
+    SongModel? currentSong;
+
+    if (currentIndex != null &&
+        sequence != null &&
+        currentIndex >= 0 &&
+        currentIndex < sequence.length) {
+      final tag = sequence[currentIndex].tag;
+      if (tag is SongModel) {
+        currentSong = tag;
+      }
+    }
+
+    if (currentSong == null) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: getAlbumArt(currentSong.id),
+      builder: (context, snapshot) {
+        final albumArt = snapshot.data;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16.0),
+          child: Container(
+            height: 100,
+            decoration: BoxDecoration(
+              image: albumArt != null
+                  ? DecorationImage(
+                      image: MemoryImage(albumArt),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: Theme.of(context).colorScheme.surfaceVariant,
+            ),
+            child: MusicBar(
+              audioPlayer: audioPlayer,
+              getAlbumArt: getAlbumArt,
+            ),
           ),
         );
       },
@@ -624,8 +688,6 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-
     return Scaffold(
       extendBody: true,
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -642,28 +704,8 @@ class _HomePageState extends State<HomePage>
           ],
         ),
       ),
-      bottomNavigationBar: StreamBuilder<PlayerState>(
-        stream: AudioService.audioPlayer.playerStateStream,
-        builder: (context, snapshot) {
-          final playerState = snapshot.data;
-          final isMusicBarVisible = playerState != null &&
-              playerState.processingState != ProcessingState.idle &&
-              playerState.processingState != ProcessingState.completed;
-
-          if (isMusicBarVisible && !isKeyboardOpen) {
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-              height: 80,
-              child: MusicBar(
-                audioPlayer: AudioService.audioPlayer,
-                getAlbumArt: getAlbumArt,
-              ),
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        },
-      ),
+      // The bottomNavigationBar is no longer needed here
+      bottomNavigationBar: const SizedBox.shrink(),
     );
   }
 }
