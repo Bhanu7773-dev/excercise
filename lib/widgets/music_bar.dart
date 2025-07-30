@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:marquee/marquee.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-// Make sure this path is correct for your project structure
+
 import 'package:my_firstapp/widgets/wavy_progress_bar.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 

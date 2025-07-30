@@ -5,12 +5,14 @@ class WavyProgressBar extends StatefulWidget {
   final double progress;
   final Color waveColor;
   final Color backgroundColor;
+  final Color indicatorColor;
 
   const WavyProgressBar({
     super.key,
     required this.progress,
     this.waveColor = Colors.white,
     this.backgroundColor = Colors.grey,
+    this.indicatorColor = Colors.white,
   });
 
   @override
@@ -26,7 +28,7 @@ class _WavyProgressBarState extends State<WavyProgressBar>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2500), // Slower for a smoother wave
     )..repeat();
   }
 
@@ -38,14 +40,16 @@ class _WavyProgressBarState extends State<WavyProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
+    // Enforce a constant height to accommodate the circle's diameter.
+    return SizedBox(
+      height: 10.0,
       child: CustomPaint(
-        painter: WavyProgressPainter(
+        painter: SlimWaveProgressPainter(
           animation: _controller,
-          waveColor: const Color.fromARGB(255, 255, 255, 255),
           progress: widget.progress,
+          waveColor: widget.waveColor,
           backgroundColor: widget.backgroundColor,
+          indicatorColor: widget.indicatorColor,
         ),
         size: Size.infinite,
       ),
@@ -53,74 +57,87 @@ class _WavyProgressBarState extends State<WavyProgressBar>
   }
 }
 
-class WavyProgressPainter extends CustomPainter {
+class SlimWaveProgressPainter extends CustomPainter {
   final Animation<double> animation;
   final double progress;
-
   final Color waveColor;
   final Color backgroundColor;
+  final Color indicatorColor;
 
   // Wave configuration
-  final int waveCount;
   final double waveAmplitude;
+  final double waveFrequency;
 
-  WavyProgressPainter({
+  SlimWaveProgressPainter({
     required this.animation,
     required this.progress,
     required this.waveColor,
     required this.backgroundColor,
-    this.waveCount = 2,
-    this.waveAmplitude = 0.4,
+    required this.indicatorColor,
+    this.waveAmplitude = 2.0, // Amplitude of the wave (pixels)
+    this.waveFrequency = 0.12, // Increased frequency for more waves
   }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
+    final centerY = size.height / 2;
+    final progressWidth = size.width * progress.clamp(0.0, 1.0);
+
+    // --- 1. Paint for the background (remaining progress) ---
     final backgroundPaint = Paint()
       ..color = backgroundColor
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
 
+    // Draw the straight line for the remaining part
+    canvas.drawLine(
+      Offset(progressWidth, centerY),
+      Offset(size.width, centerY),
+      backgroundPaint,
+    );
+
+    // --- 2. Paint and Path for the animated wave (completed progress) ---
     final wavePaint = Paint()
       ..color = waveColor
-      ..style = PaintingStyle.fill;
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5 // Slightly thicker to stand out
+      ..strokeCap = StrokeCap.round;
 
     final wavePath = Path();
-
-    wavePath.moveTo(0, size.height);
+    wavePath.moveTo(0, centerY);
 
     final phaseShift = animation.value * 2 * pi;
 
-    final frequency = (2 * pi * waveCount) / size.width;
-
-    for (double x = 0; x <= size.width; x++) {
-      final sineY = sin(x * frequency + phaseShift);
-
-      final y = size.height / 2 + sineY * (size.height * waveAmplitude);
-      wavePath.lineTo(x, y);
+    for (double x = 0; x <= progressWidth; x++) {
+      final sineY = sin(x * waveFrequency + phaseShift) * waveAmplitude;
+      wavePath.lineTo(x, centerY + sineY);
     }
 
-    wavePath.lineTo(size.width, size.height);
-    wavePath.close();
-
-    final progressWidth = size.width * progress.clamp(0.0, 1.0);
-
-    canvas.save();
-
-    canvas.clipRect(Rect.fromLTWH(0, 0, progressWidth, size.height));
-
+    // Draw the wave path
     canvas.drawPath(wavePath, wavePaint);
 
-    canvas.restore();
+    // --- 3. Paint for the circle indicator ---
+    final indicatorPaint = Paint()
+      ..color = indicatorColor
+      ..style = PaintingStyle.fill;
+
+    // Draw the circle at the exact progress position with a radius of 5 (for a 10 diameter)
+    canvas.drawCircle(
+      Offset(progressWidth, centerY),
+      5.0,
+      indicatorPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant WavyProgressPainter oldDelegate) {
+  bool shouldRepaint(covariant SlimWaveProgressPainter oldDelegate) {
+    // Repaint if any of the visual properties change
     return oldDelegate.progress != progress ||
         oldDelegate.waveColor != waveColor ||
         oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.indicatorColor != indicatorColor ||
         oldDelegate.animation != animation;
   }
 }
