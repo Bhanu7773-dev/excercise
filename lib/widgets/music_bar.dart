@@ -1,20 +1,20 @@
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:marquee/marquee.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import '../utils/audio_utils.dart';
 
 class MusicBar extends StatelessWidget {
   final AudioPlayer audioPlayer;
   final Future<Uint8List?> Function(int songId) getAlbumArt;
 
   const MusicBar({
-    Key? key,
+    super.key,
     required this.audioPlayer,
     required this.getAlbumArt,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +27,6 @@ class MusicBar extends StatelessWidget {
         SongModel? currentSong;
 
         if (currentIndex != null &&
-            sequence != null &&
             currentIndex >= 0 &&
             currentIndex < sequence.length) {
           final tag = sequence[currentIndex].tag;
@@ -38,33 +37,37 @@ class MusicBar extends StatelessWidget {
 
         if (currentSong == null) return const SizedBox.shrink();
 
-        return Container(
-          margin: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: 0), // <-- FIXED: No bottom margin!
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(29, 255, 255, 255),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: StreamBuilder<PlayerState>(
+                stream: audioPlayer.playerStateStream,
+                builder: (context, snapshot) {
+                  final playerState = snapshot.data;
+                  final isPlaying = playerState?.playing ?? false;
+                  final processingState = playerState?.processingState;
+
+                  if (processingState == ProcessingState.loading ||
+                      processingState == ProcessingState.buffering) {
+                    return loadingWidget(context);
+                  }
+
+                  return musicControlWidget(context, isPlaying, currentSong!);
+                },
+              ),
             ),
-          ),
-          child: StreamBuilder<PlayerState>(
-            stream: audioPlayer.playerStateStream,
-            builder: (context, snapshot) {
-              final playerState = snapshot.data;
-              final isPlaying = playerState?.playing ?? false;
-              final processingState = playerState?.processingState;
-
-              if (processingState == ProcessingState.loading ||
-                  processingState == ProcessingState.buffering) {
-                return loadingWidget(context);
-              }
-
-              return musicControlWidget(context, isPlaying, currentSong!);
-            },
           ),
         );
       },
@@ -99,7 +102,7 @@ class MusicBar extends StatelessWidget {
   Widget musicControlWidget(
       BuildContext context, bool isPlaying, SongModel song) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Row(
         children: [
           FutureBuilder<Uint8List?>(

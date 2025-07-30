@@ -691,14 +691,20 @@ class _HomePageState extends State<HomePage>
             buildHeading(),
             buildPills(),
             buildContentArea(),
-            if (!isKeyboardOpen)
-              MusicBar(
-                audioPlayer: AudioService.audioPlayer,
-                getAlbumArt: getAlbumArt,
-              ),
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          child: !isKeyboardOpen
+              ? SizedBox(
+                  height: 80,
+                  child: MusicBar(
+                    audioPlayer: AudioService.audioPlayer,
+                    getAlbumArt: getAlbumArt,
+                  ),
+                )
+              : const SizedBox()),
     );
   }
 }
