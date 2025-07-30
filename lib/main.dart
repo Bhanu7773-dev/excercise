@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,6 +13,16 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(ExerciseAdapter());
   await Hive.openBox<Exercise>('completed_exercises');
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  // **NEW**: This makes the status bar and navigation bar transparent.
+  // This allows your UI to draw behind the system pill/notch areas.
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+  ));
+
   runApp(
     MultiProvider(
       providers: [

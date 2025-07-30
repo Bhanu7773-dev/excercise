@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/avatar_provider.dart';
@@ -12,8 +13,10 @@ class EditAvatarPage extends StatefulWidget {
   State<EditAvatarPage> createState() => _EditAvatarPageState();
 }
 
-class _EditAvatarPageState extends State<EditAvatarPage> {
+class _EditAvatarPageState extends State<EditAvatarPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _nameController = TextEditingController();
+  late AnimationController _waveController;
 
   @override
   void initState() {
@@ -25,6 +28,11 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
         setState(() {});
       });
     });
+
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
   }
 
   Future<void> _pickAvatar(BuildContext context) async {
@@ -39,6 +47,7 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
 
   @override
   void dispose() {
+    _waveController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -55,17 +64,27 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
   @override
   Widget build(BuildContext context) {
     final avatarFile = context.watch<AvatarProvider>().avatarFile;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF181A20),
+      backgroundColor: isDark ? const Color(0xFF181A20) : Colors.white,
       body: Stack(
         children: [
-          // App Themed Gradient Background with a wavy overlay
+          // Animated Wavy Background
           SizedBox(
             height: 260,
             width: double.infinity,
-            child: CustomPaint(
-              painter: _WavyBackgroundPainter(),
+            child: AnimatedBuilder(
+              animation: _waveController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: _AnimatedWavyBackgroundPainter(
+                    animationValue: _waveController.value,
+                    isDark: isDark,
+                  ),
+                );
+              },
             ),
           ),
           // Main content
@@ -76,83 +95,85 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Avatar with theme accent border and edit/remove overlays
+                  // Avatar with animated ring and overlays
                   Hero(
                     tag: 'profile-avatar',
                     child: Material(
                       color: Colors.transparent,
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const SweepGradient(
-                                colors: [
-                                  Color(0xFF6366F1),
-                                  Color(0xFF232526),
-                                  Color(0xFF232526),
-                                  Color(0xFF6366F1),
-                                ],
-                                stops: [0, 0.5, 0.85, 1],
+                      child: AnimatedBuilder(
+                        animation: _waveController,
+                        builder: (context, child) {
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Animated ring
+                              CustomPaint(
+                                size: const Size(132, 132),
+                                painter: _AnimatedAvatarRingPainter(
+                                  animationValue: _waveController.value,
+                                  isDark: isDark,
+                                ),
                               ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 62,
-                              backgroundColor: Colors.transparent,
-                              child: CircleAvatar(
+                              // Avatar
+                              CircleAvatar(
                                 radius: 58,
-                                backgroundColor: Colors.black,
+                                backgroundColor:
+                                    isDark ? Colors.black : Colors.grey[100],
                                 backgroundImage: avatarFile != null
                                     ? FileImage(avatarFile)
                                     : null,
                                 child: avatarFile == null
-                                    ? const Icon(Icons.person_outline,
-                                        size: 60, color: Colors.white54)
+                                    ? Icon(Icons.person_outline,
+                                        size: 60,
+                                        color: isDark
+                                            ? Colors.white54
+                                            : Colors.black38)
                                     : null,
                               ),
-                            ),
-                          ),
-                          // Edit icon overlay (bottom right)
-                          Positioned(
-                            bottom: 0,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _pickAvatar(context),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurpleAccent,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                              // Edit icon overlay (bottom right)
+                              Positioned(
+                                bottom: 0,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _pickAvatar(context),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepPurpleAccent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                    ),
+                                    padding: const EdgeInsets.all(7),
+                                    child: const Icon(Icons.edit,
+                                        color: Colors.white, size: 19),
+                                  ),
                                 ),
-                                padding: const EdgeInsets.all(7),
-                                child: const Icon(Icons.edit,
-                                    color: Colors.white, size: 19),
                               ),
-                            ),
-                          ),
-                          // Remove icon overlay (bottom left)
-                          Positioned(
-                            bottom: 0,
-                            left: 4,
-                            child: GestureDetector(
-                              onTap: () => Provider.of<AvatarProvider>(context,
-                                      listen: false)
-                                  .removeAvatar(),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.red[700],
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                              // Remove icon overlay (bottom left)
+                              Positioned(
+                                bottom: 0,
+                                left: 4,
+                                child: GestureDetector(
+                                  onTap: () => Provider.of<AvatarProvider>(
+                                          context,
+                                          listen: false)
+                                      .removeAvatar(),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[700],
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                    ),
+                                    padding: const EdgeInsets.all(7),
+                                    child: const Icon(Icons.delete_outline,
+                                        color: Colors.white, size: 19),
+                                  ),
                                 ),
-                                padding: const EdgeInsets.all(7),
-                                child: const Icon(Icons.delete_outline,
-                                    color: Colors.white, size: 19),
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -164,17 +185,17 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                     padding: const EdgeInsets.symmetric(
                         vertical: 32, horizontal: 22),
                     decoration: BoxDecoration(
-                      color: Colors.grey[900],
+                      color: isDark ? Colors.grey[900] : Colors.grey[100],
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.18),
+                          color: Colors.deepPurple.withOpacity(0.10),
                           blurRadius: 22,
                           offset: const Offset(0, 8),
                         ),
                       ],
                       border: Border.all(
-                          color: const Color(0xFF6366F1).withOpacity(0.32),
+                          color: const Color(0xFF6366F1).withOpacity(0.18),
                           width: 1.4),
                     ),
                     child: Column(
@@ -183,22 +204,24 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 18, vertical: 5),
                           decoration: BoxDecoration(
-                            color: Colors.grey[800],
+                            color: isDark ? Colors.grey[800] : Colors.grey[200],
                             borderRadius: BorderRadius.circular(22),
                           ),
                           child: TextField(
                             controller: _nameController,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 22,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               border: InputBorder.none,
                               hintText: "Enter your name",
                               hintStyle: TextStyle(
-                                  color: Colors.white38, fontSize: 19),
+                                  color:
+                                      isDark ? Colors.white38 : Colors.black26,
+                                  fontSize: 19),
                             ),
                             onChanged: (value) {
                               Provider.of<AvatarProvider>(context,
@@ -227,7 +250,9 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                         Text(
                           "Your profile is only visible to you. Update your name and avatar for a personal touch!",
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.55),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.55)
+                                : Colors.black54,
                             fontSize: 13,
                             fontStyle: FontStyle.italic,
                           ),
@@ -244,10 +269,10 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.grey[900],
+                        color: isDark ? Colors.grey[900] : Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: const Color(0xFF6366F1).withOpacity(0.23),
+                            color: const Color(0xFF6366F1).withOpacity(0.13),
                             width: 1),
                       ),
                       child: Column(
@@ -258,22 +283,22 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                             radius: 24,
                           ),
                           const SizedBox(height: 10),
-                          const Text(
+                          Text(
                             '🌑 I am DARK 🌑',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
-                              color: Colors.white,
+                              color: isDark ? Colors.white : Colors.black87,
                               letterSpacing: 1.2,
                             ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             'BCA Student & Aspiring Developer',
                             style: TextStyle(
                               fontStyle: FontStyle.italic,
-                              color: Colors.white70,
+                              color: isDark ? Colors.white70 : Colors.black54,
                               fontSize: 13,
                             ),
                             textAlign: TextAlign.center,
@@ -289,12 +314,12 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Special thanks to our amazing collaborators:\n'
                             'ineffable & darkx dev',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white60,
+                              color: isDark ? Colors.white60 : Colors.black54,
                               fontStyle: FontStyle.italic,
                             ),
                             textAlign: TextAlign.center,
@@ -317,7 +342,7 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                               // GitHub
                               IconButton(
                                 icon: const Icon(FontAwesomeIcons.github,
-                                    color: Colors.white),
+                                    color: Colors.black),
                                 onPressed: () {
                                   _launchURL(
                                       "https://github.com/Bhanu7773-dev");
@@ -343,11 +368,11 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'App Version: 1.0.0',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.white38,
+                              color: isDark ? Colors.white38 : Colors.black38,
                               fontStyle: FontStyle.italic,
                             ),
                             textAlign: TextAlign.center,
@@ -366,10 +391,13 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
             left: 15,
             child: Material(
               shape: const CircleBorder(),
-              color: Colors.black.withOpacity(0.7),
+              color: isDark
+                  ? Colors.black.withOpacity(0.7)
+                  : Colors.white.withOpacity(0.7),
               elevation: 2,
               child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back,
+                    color: isDark ? Colors.white : Colors.black),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
@@ -380,35 +408,120 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
   }
 }
 
-// Custom Painter for Wavy Background with FIT-X theme
-class _WavyBackgroundPainter extends CustomPainter {
+// Animated Wavy Background Painter for Avatar Page
+class _AnimatedWavyBackgroundPainter extends CustomPainter {
+  final double animationValue;
+  final bool isDark;
+  _AnimatedWavyBackgroundPainter(
+      {required this.animationValue, required this.isDark});
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Main accent wave
-    Paint paint = Paint()..color = const Color(0xFF6366F1);
-    Path path = Path();
-    path.lineTo(0, size.height * 0.65);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.9,
-        size.width * 0.5, size.height * 0.7);
-    path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.5, size.width, size.height * 0.75);
-    path.lineTo(size.width, 0);
+    // Wavy main accent
+    final Paint paint = Paint()
+      ..color = isDark
+          ? const Color(0xFF6366F1)
+          : const Color(0xFF9B5DE5).withOpacity(0.82);
+    final Path path = Path();
+    final double waveHeight = 22 + 10 * sin(animationValue * 2 * pi);
+    final double wavePhase = animationValue * 2 * pi;
+
+    path.moveTo(0, size.height * 0.65);
+    for (double i = 0; i <= size.width; i += 1) {
+      double y = size.height * 0.65 +
+          waveHeight * sin((i / size.width * 2 * pi) + wavePhase);
+      path.lineTo(i, y);
+    }
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
     path.close();
+
     canvas.drawPath(path, paint);
 
-    // Overlay for depth
-    Paint overlay = Paint()..color = const Color(0xFF181A20).withOpacity(0.85);
-    Path overlayPath = Path();
-    overlayPath.lineTo(0, size.height * 0.38);
-    overlayPath.quadraticBezierTo(size.width * 0.3, size.height * 0.66,
-        size.width * 0.5, size.height * 0.5);
-    overlayPath.quadraticBezierTo(
-        size.width * 0.7, size.height * 0.32, size.width, size.height * 0.62);
+    // Overlay for depth (also animated)
+    final Paint overlay = Paint()
+      ..color = isDark
+          ? const Color(0xFF181A20).withOpacity(0.85)
+          : Colors.white.withOpacity(0.85);
+    final Path overlayPath = Path();
+    final double overlayWaveHeight = 16 + 6 * cos(animationValue * 2 * pi);
+
+    overlayPath.moveTo(0, size.height * 0.38);
+    for (double i = 0; i <= size.width; i += 1) {
+      double y = size.height * 0.38 +
+          overlayWaveHeight *
+              cos((i / size.width * 2 * pi) + wavePhase + pi / 2);
+      overlayPath.lineTo(i, y);
+    }
     overlayPath.lineTo(size.width, 0);
+    overlayPath.lineTo(0, 0);
     overlayPath.close();
+
     canvas.drawPath(overlayPath, overlay);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _AnimatedWavyBackgroundPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.isDark != isDark;
+}
+
+// Animated Avatar Ring Painter (syncs with background animation)
+class _AnimatedAvatarRingPainter extends CustomPainter {
+  final double animationValue;
+  final bool isDark;
+  _AnimatedAvatarRingPainter(
+      {required this.animationValue, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double center = size.width / 2;
+    final double radius = size.width / 2 - 4;
+    final double ringWidth = 7.0;
+
+    // Main animated color ring
+    final rect =
+        Rect.fromCircle(center: Offset(center, center), radius: radius);
+    final sweepGradient = SweepGradient(
+      startAngle: 0,
+      endAngle: 2 * pi,
+      colors: isDark
+          ? [
+              const Color(0xFF6366F1),
+              Colors.deepPurpleAccent,
+              const Color(0xFF6366F1),
+            ]
+          : [
+              const Color(0xFF9B5DE5),
+              Colors.purpleAccent,
+              const Color(0xFF9B5DE5),
+            ],
+      stops: [
+        0.0,
+        0.5 + 0.2 * sin(animationValue * 2 * pi),
+        1.0,
+      ],
+      transform: GradientRotation(animationValue * 2 * pi),
+    );
+    final Paint ringPaint = Paint()
+      ..shader = sweepGradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ringWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(Offset(center, center), radius, ringPaint);
+
+    // Add pulsating glow
+    final glowPaint = Paint()
+      ..color = (isDark ? const Color(0xFF6366F1) : const Color(0xFF9B5DE5))
+          .withOpacity(0.18 + 0.10 * sin(animationValue * 2 * pi))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+    canvas.drawCircle(Offset(center, center),
+        radius + 4 + 2 * sin(animationValue * 2 * pi), glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnimatedAvatarRingPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.isDark != isDark;
 }

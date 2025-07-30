@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:intl/intl.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
@@ -303,6 +305,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildTopBar() {
+    String today = DateFormat('d').format(DateTime.now());
     return Container(
       padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 8),
       child: Row(
@@ -327,12 +330,15 @@ class _HomePageState extends State<HomePage>
                   color: const Color(0xFF2A2A2A),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.calendar_today_sharp,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    size: 20,
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                child: Text(
+                  today,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -678,33 +684,39 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    return Scaffold(
-      extendBody: true, // <-- Add this to allow your MusicBar to float
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SafeArea(
-        top: true,
-        bottom: false, // <-- Don't pad the bottom, so MusicBar can float
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildTopBar(),
-            buildHeading(),
-            buildPills(),
-            buildContentArea(),
-          ],
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
       ),
-      bottomNavigationBar: Container(
-          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          child: !isKeyboardOpen
-              ? SizedBox(
-                  height: 80,
-                  child: MusicBar(
-                    audioPlayer: AudioService.audioPlayer,
-                    getAlbumArt: getAlbumArt,
-                  ),
-                )
-              : const SizedBox()),
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildTopBar(),
+              buildHeading(),
+              buildPills(),
+              buildContentArea(),
+            ],
+          ),
+        ),
+        bottomNavigationBar: Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            child: !isKeyboardOpen
+                ? SizedBox(
+                    height: 80,
+                    child: MusicBar(
+                      audioPlayer: AudioService.audioPlayer,
+                      getAlbumArt: getAlbumArt,
+                    ),
+                  )
+                : const SizedBox()),
+      ),
     );
   }
 }
