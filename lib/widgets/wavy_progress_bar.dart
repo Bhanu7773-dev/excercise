@@ -6,6 +6,10 @@ class WavyProgressBar extends StatefulWidget {
   final Color waveColor;
   final Color backgroundColor;
   final Color indicatorColor;
+  // Callbacks to handle user seeking
+  final VoidCallback? onSeekStart;
+  final ValueChanged<double>? onSeek;
+  final ValueChanged<double>? onSeekEnd;
 
   const WavyProgressBar({
     super.key,
@@ -13,6 +17,9 @@ class WavyProgressBar extends StatefulWidget {
     this.waveColor = Colors.white,
     this.backgroundColor = Colors.grey,
     this.indicatorColor = Colors.white,
+    this.onSeekStart,
+    this.onSeek,
+    this.onSeekEnd,
   });
 
   @override
@@ -22,13 +29,15 @@ class WavyProgressBar extends StatefulWidget {
 class _WavyProgressBarState extends State<WavyProgressBar>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  bool _isDragging = false;
+  double _dragProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500), // Slower for a smoother wave
+      duration: const Duration(milliseconds: 2500),
     )..repeat();
   }
 
@@ -38,21 +47,64 @@ class _WavyProgressBarState extends State<WavyProgressBar>
     super.dispose();
   }
 
+  void _updateDragPosition(Offset localPosition, BoxConstraints constraints) {
+    final newProgress = (localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
+    setState(() {
+      _dragProgress = newProgress;
+    });
+    widget.onSeek?.call(newProgress);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Enforce a constant height to accommodate the circle's diameter.
-    return SizedBox(
-      height: 10.0,
-      child: CustomPaint(
-        painter: SlimWaveProgressPainter(
-          animation: _controller,
-          progress: widget.progress,
-          waveColor: widget.waveColor,
-          backgroundColor: widget.backgroundColor,
-          indicatorColor: widget.indicatorColor,
-        ),
-        size: Size.infinite,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GestureDetector(
+          onHorizontalDragStart: (details) {
+            // Check if the drag starts near the indicator circle
+            final currentIndicatorX = widget.progress * constraints.maxWidth;
+            final startX = details.localPosition.dx;
+            // Define a touch target area around the indicator
+            const touchSlop = 24.0; 
+            if ((startX - currentIndicatorX).abs() < touchSlop) {
+              setState(() {
+                _isDragging = true;
+                _dragProgress = widget.progress;
+              });
+              widget.onSeekStart?.call();
+              _updateDragPosition(details.localPosition, constraints);
+            }
+          },
+          onHorizontalDragUpdate: (details) {
+            if (_isDragging) {
+              _updateDragPosition(details.localPosition, constraints);
+            }
+          },
+          onHorizontalDragEnd: (details) {
+            if (_isDragging) {
+              widget.onSeekEnd?.call(_dragProgress);
+              setState(() {
+                _isDragging = false;
+              });
+            }
+          },
+          child: SizedBox(
+            height: 10.0,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: SlimWaveProgressPainter(
+                animation: _controller,
+                // Use drag progress if dragging, otherwise use widget progress
+                progress: _isDragging ? _dragProgress : widget.progress,
+                isDragging: _isDragging,
+                waveColor: widget.waveColor,
+                backgroundColor: widget.backgroundColor,
+                indicatorColor: widget.indicatorColor,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -60,6 +112,7 @@ class _WavyProgressBarState extends State<WavyProgressBar>
 class SlimWaveProgressPainter extends CustomPainter {
   final Animation<double> animation;
   final double progress;
+  final bool isDragging;
   final Color waveColor;
   final Color backgroundColor;
   final Color indicatorColor;
@@ -71,11 +124,12 @@ class SlimWaveProgressPainter extends CustomPainter {
   SlimWaveProgressPainter({
     required this.animation,
     required this.progress,
+    required this.isDragging,
     required this.waveColor,
     required this.backgroundColor,
     required this.indicatorColor,
-    this.waveAmplitude = 2.0, // Amplitude of the wave (pixels)
-    this.waveFrequency = 0.12, // Increased frequency for more waves
+    this.waveAmplitude = 2.0,
+    this.waveFrequency = 0.12,
   }) : super(repaint: animation);
 
   @override
@@ -91,7 +145,6 @@ class SlimWaveProgressPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    // Draw the straight line for the remaining part
     canvas.drawLine(
       Offset(progressWidth, centerY),
       Offset(size.width, centerY),
@@ -102,7 +155,7 @@ class SlimWaveProgressPainter extends CustomPainter {
     final wavePaint = Paint()
       ..color = waveColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5 // Slightly thicker to stand out
+      ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
 
     final wavePath = Path();
@@ -115,26 +168,27 @@ class SlimWaveProgressPainter extends CustomPainter {
       wavePath.lineTo(x, centerY + sineY);
     }
 
-    // Draw the wave path
     canvas.drawPath(wavePath, wavePaint);
 
     // --- 3. Paint for the circle indicator ---
     final indicatorPaint = Paint()
       ..color = indicatorColor
       ..style = PaintingStyle.fill;
+      
+    // Make the circle slightly larger when dragging for visual feedback
+    final indicatorRadius = isDragging ? 7.0 : 5.0;
 
-    // Draw the circle at the exact progress position with a radius of 5 (for a 10 diameter)
     canvas.drawCircle(
       Offset(progressWidth, centerY),
-      5.0,
+      indicatorRadius,
       indicatorPaint,
     );
   }
 
   @override
   bool shouldRepaint(covariant SlimWaveProgressPainter oldDelegate) {
-    // Repaint if any of the visual properties change
     return oldDelegate.progress != progress ||
+        oldDelegate.isDragging != isDragging ||
         oldDelegate.waveColor != waveColor ||
         oldDelegate.backgroundColor != backgroundColor ||
         oldDelegate.indicatorColor != indicatorColor ||

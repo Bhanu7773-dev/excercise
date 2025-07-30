@@ -5,7 +5,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:marquee/marquee.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import 'package:my_firstapp/widgets/wavy_progress_bar.dart';
+// Make sure this path is correct for your project structure
+import 'package:my_firstapp/widgets/wavy_progress_bar.dart'; 
 import 'package:on_audio_query/on_audio_query.dart';
 
 /// A custom painter that draws a series of expanding, fading circles to create a wave pulse effect.
@@ -283,6 +284,13 @@ class _MusicBarState extends State<MusicBar> with TickerProviderStateMixin {
                                 : 0.0,
                             waveColor: Theme.of(context).colorScheme.primary,
                             backgroundColor: Colors.white.withOpacity(0.3),
+                            // *** ADDED THIS CALLBACK ***
+                            onSeekEnd: (newProgress) {
+                              if (duration > Duration.zero) {
+                                final newPosition = duration * newProgress;
+                                widget.audioPlayer.seek(newPosition);
+                              }
+                            },
                           );
                         },
                       ),
