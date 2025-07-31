@@ -6,16 +6,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:my_firstapp/widgets/music_bar.dart';
+import 'package:my_firstapp/widgets/music_bar_2.dart';
 import 'package:provider/provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
 import 'package:my_firstapp/utils/theme_provider.dart';
+import 'package:my_firstapp/model/music_bar_provider.dart'; // <-- correct provider import
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
 import 'edit_avatar_page.dart';
 import 'status_tab.dart';
+import 'package:my_firstapp/widgets/music_bar.dart';
+import 'package:my_firstapp/widgets/music_bar_2.dart';
 
 enum SelectedPill { connection, status, music }
 
@@ -161,85 +165,116 @@ class _HomePageState extends State<HomePage>
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        return Consumer<ThemeProvider>(
-          builder: (context, currentThemeProvider, child) {
+        return Consumer2<ThemeProvider, MusicBarProvider>(
+          builder: (context, currentThemeProvider, musicBarProvider, child) {
             final isSystemMode =
                 currentThemeProvider.themeMode == ThemeMode.system;
             final isDarkMode = currentThemeProvider.themeMode == ThemeMode.dark;
+            final useGlassPlayer = musicBarProvider.useGlassPlayer;
 
-            return AlertDialog(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                "Theme Settings",
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Custom Android Thumb Switch with perfect alignment
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Follow System",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      _AndroidSwitch(
-                        value: isSystemMode,
-                        onChanged: (value) {
-                          themeProvider.setThemeMode(
-                              value ? ThemeMode.system : ThemeMode.light);
-                        },
-                      ),
-                    ],
+            return StatefulBuilder(builder: (context, setStateDialog) {
+              return AlertDialog(
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                title: Text(
+                  "Theme Settings",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Dark Mode",
-                        style: TextStyle(
-                          color: isSystemMode
-                              ? Theme.of(context).colorScheme.outline
-                              : Theme.of(context).colorScheme.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Follow System",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      _DarkModeSwitch(
-                        value: isDarkMode,
-                        onChanged: isSystemMode
-                            ? null
-                            : (value) {
-                                themeProvider.setThemeMode(
-                                    value ? ThemeMode.dark : ThemeMode.light);
-                              },
-                        isDisabled: isSystemMode,
-                      ),
-                    ],
+                        _AndroidSwitch(
+                          value: isSystemMode,
+                          onChanged: (value) {
+                            themeProvider.setThemeMode(
+                                value ? ThemeMode.system : ThemeMode.light);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Dark Mode",
+                          style: TextStyle(
+                            color: isSystemMode
+                                ? Theme.of(context).colorScheme.outline
+                                : Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        _DarkModeSwitch(
+                          value: isDarkMode,
+                          onChanged: isSystemMode
+                              ? null
+                              : (value) {
+                                  themeProvider.setThemeMode(
+                                      value ? ThemeMode.dark : ThemeMode.light);
+                                },
+                          isDisabled: isSystemMode,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Glass Music Player",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Switch(
+                          value: useGlassPlayer,
+                          onChanged: (value) {
+                            musicBarProvider.setUseGlassPlayer(value);
+                            setStateDialog(() {});
+                            setState(() {}); // To update UI if needed
+                          },
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          inactiveThumbColor:
+                              Theme.of(context).colorScheme.outline,
+                          inactiveTrackColor:
+                              Theme.of(context).colorScheme.outlineVariant,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text("Close",
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary)),
                   ),
                 ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: Text("Close",
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary)),
-                ),
-              ],
-            );
+              );
+            });
           },
         );
       },
@@ -333,7 +368,6 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  // Updated editGoal for new ExerciseList signature
   void editGoal(String name, int newGoal) {
     setState(() {
       exerciseGoals[name] = newGoal;
@@ -546,6 +580,9 @@ class _HomePageState extends State<HomePage>
       return const SizedBox.shrink();
     }
 
+    // Use provider to determine which music bar to use
+    final useGlassPlayer = context.watch<MusicBarProvider>().useGlassPlayer;
+
     return FutureBuilder<Uint8List?>(
       future: getAlbumArt(currentSong.id),
       builder: (context, snapshot) {
@@ -563,10 +600,15 @@ class _HomePageState extends State<HomePage>
                   : null,
               color: Theme.of(context).colorScheme.surfaceVariant,
             ),
-            child: MusicBar(
-              audioPlayer: audioPlayer,
-              getAlbumArt: getAlbumArt,
-            ),
+            child: useGlassPlayer
+                ? MusicBar2(
+                    audioPlayer: audioPlayer,
+                    getAlbumArt: getAlbumArt,
+                  )
+                : MusicBar(
+                    audioPlayer: audioPlayer,
+                    getAlbumArt: getAlbumArt,
+                  ),
           ),
         );
       },
@@ -739,7 +781,7 @@ class _HomePageState extends State<HomePage>
               goalExercises: goalExercises,
               stopwatchExercises: stopwatchExercises,
               exerciseGoals: exerciseGoals,
-              onEditGoal: editGoal, // <-- NEW SIGNATURE!
+              onEditGoal: editGoal,
               getExerciseIcon: getExerciseIcon,
             ),
           ),

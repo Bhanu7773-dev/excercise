@@ -9,6 +9,7 @@ import 'model/avatar_provider.dart';
 import 'utils/theme_provider.dart';
 import 'utils/theme_data.dart';
 import 'screens/splash.dart';
+import 'model/music_bar_provider.dart'; // <-- import your provider here
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,8 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider(create: (_) => AvatarProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+            create: (_) => MusicBarProvider()), // <-- Add this!
       ],
       child: const MyApp(),
     ),
@@ -56,7 +59,7 @@ class MyApp extends StatelessWidget {
       darkTheme: darkTheme,
       // Let the ThemeProvider control which theme is active
       themeMode: themeProvider.themeMode,
-      home: SplashScreen(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
