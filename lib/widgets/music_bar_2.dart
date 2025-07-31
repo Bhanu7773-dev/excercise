@@ -38,7 +38,7 @@ class MusicBar2 extends StatelessWidget {
         if (currentSong == null) return const SizedBox.shrink();
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
@@ -47,7 +47,6 @@ class MusicBar2 extends StatelessWidget {
                     .colorScheme
                     .primaryContainer
                     .withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
                 ),

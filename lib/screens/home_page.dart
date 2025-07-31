@@ -251,7 +251,7 @@ class _HomePageState extends State<HomePage>
                           onChanged: (value) {
                             musicBarProvider.setUseGlassPlayer(value);
                             setStateDialog(() {});
-                            setState(() {}); // To update UI if needed
+                            setState(() {});
                           },
                           activeColor: Theme.of(context).colorScheme.primary,
                           inactiveThumbColor:
@@ -454,7 +454,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget buildHeading() {
+  Widget buildHeading(bool useGlassPlayer) {
     final avatarProvider = Provider.of<AvatarProvider>(context, listen: false);
     final userName = avatarProvider.userName;
 
@@ -490,7 +490,7 @@ class _HomePageState extends State<HomePage>
                   playerState.processingState != ProcessingState.idle &&
                   playerState.processingState != ProcessingState.completed;
 
-              if (isMusicPlaying) {
+              if (isMusicPlaying && useGlassPlayer == false) {
                 return buildMusicPlayerCard();
               } else {
                 return buildRememberCard(userName);
@@ -580,36 +580,27 @@ class _HomePageState extends State<HomePage>
       return const SizedBox.shrink();
     }
 
-    // Use provider to determine which music bar to use
-    final useGlassPlayer = context.watch<MusicBarProvider>().useGlassPlayer;
-
     return FutureBuilder<Uint8List?>(
       future: getAlbumArt(currentSong.id),
       builder: (context, snapshot) {
         final albumArt = snapshot.data;
         return ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(18.0),
           child: Container(
-            height: 100,
-            decoration: BoxDecoration(
-              image: albumArt != null
-                  ? DecorationImage(
-                      image: MemoryImage(albumArt),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-              color: Theme.of(context).colorScheme.surfaceVariant,
-            ),
-            child: useGlassPlayer
-                ? MusicBar2(
-                    audioPlayer: audioPlayer,
-                    getAlbumArt: getAlbumArt,
-                  )
-                : MusicBar(
-                    audioPlayer: audioPlayer,
-                    getAlbumArt: getAlbumArt,
-                  ),
-          ),
+              height: 100,
+              decoration: BoxDecoration(
+                image: albumArt != null
+                    ? DecorationImage(
+                        image: MemoryImage(albumArt),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: Theme.of(context).colorScheme.surfaceVariant,
+              ),
+              child: MusicBar2(
+                audioPlayer: audioPlayer,
+                getAlbumArt: getAlbumArt,
+              )),
         );
       },
     );
@@ -825,6 +816,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    final musicBarProvider = Provider.of<MusicBarProvider>(context);
     return Scaffold(
       extendBody: true,
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -835,13 +827,23 @@ class _HomePageState extends State<HomePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             buildTopBar(),
-            buildHeading(),
+            buildHeading(musicBarProvider.useGlassPlayer == true),
             buildPills(),
             buildContentArea(),
           ],
         ),
       ),
-      bottomNavigationBar: const SizedBox.shrink(),
+      bottomNavigationBar: musicBarProvider.useGlassPlayer == false
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.all(10),
+              child: SizedBox(
+                height: 80,
+                child: MusicBar(
+                    audioPlayer: AudioService.audioPlayer,
+                    getAlbumArt: getAlbumArt),
+              ),
+            ),
     );
   }
 }
