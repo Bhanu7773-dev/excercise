@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
 import 'model/exercise_data.dart';
 import 'model/exercise_status_provider.dart';
 import 'model/avatar_provider.dart';
+import 'utils/theme_provider.dart';
+import 'utils/theme_data.dart';
 import 'screens/splash.dart';
 
 Future<void> main() async {
@@ -16,8 +18,6 @@ Future<void> main() async {
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  // **NEW**: This makes the status bar and navigation bar transparent.
-  // This allows your UI to draw behind the system pill/notch areas.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     systemNavigationBarColor: Colors.transparent,
@@ -34,6 +34,7 @@ Future<void> main() async {
           },
         ),
         ChangeNotifierProvider(create: (_) => AvatarProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -45,29 +46,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to the ThemeProvider for changes
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       title: 'Exercise Tracker',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
-          brightness: Brightness.dark,
-          background: const Color(0xFF0D0D0D),
-          surface: const Color(0xFF1A1A1A),
-        ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
-          brightness: Brightness.dark,
-          background: const Color(0xFF0D0D0D),
-          surface: const Color(0xFF1A1A1A),
-        ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      ),
-      themeMode: ThemeMode.dark,
+      // Use the themes from your theme_data.dart file
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      // Let the ThemeProvider control which theme is active
+      themeMode: themeProvider.themeMode,
       home: SplashScreen(),
       debugShowCheckedModeBanner: false,
     );

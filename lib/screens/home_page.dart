@@ -1,14 +1,17 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:my_firstapp/widgets/music_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:intl/intl.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
+import 'package:my_firstapp/utils/theme_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
-import 'package:my_firstapp/widgets/music_bar.dart';
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
 import 'edit_avatar_page.dart';
@@ -26,8 +29,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   SelectedPill selectedPill = SelectedPill.connection;
-  late AnimationController _pillController;
-  late Animation<double> _pillAnim;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   Map<String, int> exerciseGoals = {
     'Push Ups': 10,
@@ -61,7 +64,6 @@ class _HomePageState extends State<HomePage>
     'Spiderman Push Ups': 8,
     'Diamond Push Ups': 8,
   };
-
   final List<String> goalExercises = [
     'Push Ups',
     'Sit Ups',
@@ -94,7 +96,6 @@ class _HomePageState extends State<HomePage>
     'Spiderman Push Ups',
     'Diamond Push Ups',
   ];
-
   final List<String> stopwatchExercises = [
     'Plank',
     'Wall Sit',
@@ -128,26 +129,20 @@ class _HomePageState extends State<HomePage>
     'Boat Pose',
     'Crab Hold',
   ];
-
   bool _isMusicSearching = false;
   String _musicSearchText = '';
-
-  final List<_PillMeta> pills = [
-    _PillMeta("WORKOUT", SelectedPill.connection, Iconsax.flash),
-    _PillMeta("STATUS", SelectedPill.status, Iconsax.chart_2),
-    _PillMeta("MUSIC", SelectedPill.music, Iconsax.musicnote),
-  ];
 
   @override
   void initState() {
     super.initState();
-    _pillController = AnimationController(
-      duration: const Duration(milliseconds: 320),
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _pillAnim =
-        CurvedAnimation(parent: _pillController, curve: Curves.easeOutCubic);
-    _pillController.forward();
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AvatarProvider>(context, listen: false).loadUserName();
@@ -156,112 +151,96 @@ class _HomePageState extends State<HomePage>
 
   @override
   void dispose() {
-    _pillController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
-  void _onPillTap(int newIndex) {
-    if (newIndex == pills.indexWhere((p) => p.pill == selectedPill)) return;
-    setState(() {
-      selectedPill = pills[newIndex].pill;
-    });
-  }
+  void _showThemeDialog(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
-  /// --- FIXED BUILD PILLS ---
-  Widget buildPills() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double containerPadding = 4;
-        double totalWidth = constraints.maxWidth - containerPadding * 2;
-        final pillCount = pills.length;
-        final pillWidth = totalWidth / pillCount;
-        final selectedIndex = pills.indexWhere((p) => p.pill == selectedPill);
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Consumer<ThemeProvider>(
+          builder: (context, currentThemeProvider, child) {
+            final isSystemMode =
+                currentThemeProvider.themeMode == ThemeMode.system;
+            final isDarkMode = currentThemeProvider.themeMode == ThemeMode.dark;
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          padding: EdgeInsets.all(containerPadding),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                // Animated selector background
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  left: selectedIndex * pillWidth,
-                  top: 0,
-                  bottom: 0,
-                  width: pillWidth,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
+            return AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                "Theme Settings",
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
-                // Row of pill buttons
-                Row(
-                  children: pills.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final pillMeta = entry.value;
-                    final isSelected = selectedPill == pillMeta.pill;
-                    return SizedBox(
-                      width: pillWidth,
-                      child: GestureDetector(
-                        onTap: () => _onPillTap(idx),
-                        child: Container(
-                          height: 44,
-                          color: Colors.transparent,
-                          alignment: Alignment.center,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  pillMeta.icon,
-                                  size: 16,
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                AnimatedDefaultTextStyle(
-                                  duration: const Duration(milliseconds: 200),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                  ),
-                                  child: Text(
-                                    pillMeta.label,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Custom Android Thumb Switch with perfect alignment
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Follow System",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    );
-                  }).toList(),
+                      _AndroidSwitch(
+                        value: isSystemMode,
+                        onChanged: (value) {
+                          themeProvider.setThemeMode(
+                              value ? ThemeMode.system : ThemeMode.light);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Dark Mode",
+                        style: TextStyle(
+                          color: isSystemMode
+                              ? Theme.of(context).colorScheme.outline
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      _DarkModeSwitch(
+                        value: isDarkMode,
+                        onChanged: isSystemMode
+                            ? null
+                            : (value) {
+                                themeProvider.setThemeMode(
+                                    value ? ThemeMode.dark : ThemeMode.light);
+                              },
+                        isDisabled: isSystemMode,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text("Close",
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary)),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -345,8 +324,6 @@ class _HomePageState extends State<HomePage>
       case 'side lying leg raise hold (left)':
       case 'side lying leg raise hold (right)':
         return Icons.airline_seat_legroom_extra;
-      case 'inchworms':
-        return Icons.bug_report;
       case 'crab hold':
         return Icons.airline_seat_recline_extra;
       case 'l-sit hold (on floor or chairs)':
@@ -356,129 +333,48 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  /// Custom animated dialog (pop effect)
-  Future<T?> showAnimatedDialog<T>(BuildContext context, Widget child) {
-    return showGeneralDialog(
-      context: context,
-      barrierLabel: "Edit Goal",
-      barrierDismissible: true,
-      transitionDuration: const Duration(milliseconds: 350),
-      pageBuilder: (context, anim1, anim2) => child,
-      transitionBuilder: (context, anim1, anim2, widget) {
-        final curvedValue = Curves.easeOutBack.transform(anim1.value);
-        return Transform.scale(
-          scale: curvedValue,
-          child: Opacity(
-            opacity: anim1.value,
-            child: widget,
-          ),
-        );
-      },
-    );
-  }
-
-  void editGoal(String name) async {
-    TextEditingController controller =
-        TextEditingController(text: exerciseGoals[name].toString());
-
-    final updated = await showAnimatedDialog<int>(
-      context,
-      AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          "Edit Goal",
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-          decoration: InputDecoration(
-            labelText: "New goal count",
-            labelStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.outline),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.primary),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Cancel",
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newGoal = int.tryParse(controller.text);
-              Navigator.pop(context, newGoal);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
-
-    if (updated != null) {
-      setState(() {
-        exerciseGoals[name] = updated;
-      });
-    }
+  // Updated editGoal for new ExerciseList signature
+  void editGoal(String name, int newGoal) {
+    setState(() {
+      exerciseGoals[name] = newGoal;
+    });
   }
 
   Widget buildTopBar() {
-    String today = DateFormat('d').format(DateTime.now());
     return Container(
       padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Iconsax.flash,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 20,
+          InkWell(
+            onTap: () => _showThemeDialog(context),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Iconsax.color_swatch,
+                color: Theme.of(context).colorScheme.onPrimary,
+                size: 20,
+              ),
             ),
           ),
           Row(
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
+                  color: Theme.of(context).colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                child: Text(
-                  today,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
+                child: IconButton(
+                  onPressed: () {},
+                  icon: Icon(
+                    Icons.calendar_today_sharp,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 20,
                   ),
                 ),
               ),
@@ -488,7 +384,7 @@ class _HomePageState extends State<HomePage>
                   final avatarFile = avatarProvider.avatarFile;
                   return Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
+                      color: Theme.of(context).colorScheme.surfaceVariant,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -505,11 +401,13 @@ class _HomePageState extends State<HomePage>
                               backgroundImage: FileImage(avatarFile),
                               backgroundColor: Colors.transparent,
                             )
-                          : const CircleAvatar(
+                          : CircleAvatar(
                               radius: 16,
                               backgroundColor: Colors.transparent,
-                              child: Icon(Icons.person_outline,
-                                  color: Colors.white),
+                              child: Icon(
+                                Icons.person_outline,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                     ),
                   );
@@ -523,93 +421,222 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildHeading() {
-    return Consumer<AvatarProvider>(
-      builder: (context, avatarProvider, _) {
-        final userName = avatarProvider.userName;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Fitness Tracking",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                  height: 1.1,
-                ),
-              ),
-              Text(
-                "with FIT-X",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  height: 1.1,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color:
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    final avatarProvider = Provider.of<AvatarProvider>(context, listen: false);
+    final userName = avatarProvider.userName;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Fitness Tracking",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+              height: 1.1,
+            ),
+          ),
+          Text(
+            "with FIT-X",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<PlayerState>(
+            stream: AudioService.audioPlayer.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              final isMusicPlaying = playerState != null &&
+                  playerState.processingState != ProcessingState.idle &&
+                  playerState.processingState != ProcessingState.completed;
+
+              if (isMusicPlaying) {
+                return buildMusicPlayerCard();
+              } else {
+                return buildRememberCard(userName);
+              }
+            },
+          ),
+          const SizedBox(height: 0),
+        ],
+      ),
+    );
+  }
+
+  Widget buildRememberCard(String? userName) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Iconsax.quote_up,
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (userName != null && userName.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      "$userName, remember:",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                Text(
+                  "The only bad workout is the one that didn't happen.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Iconsax.quote_up,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (userName != null && userName.trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                "$userName, remember:",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          Text(
-                            "The only bad workout is the one that didn't happen.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 0),
-            ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildMusicPlayerCard() {
+    final audioPlayer = AudioService.audioPlayer;
+    final currentIndex = audioPlayer.currentIndex;
+    final sequence = audioPlayer.sequence;
+    SongModel? currentSong;
+
+    if (currentIndex != null &&
+        sequence != null &&
+        currentIndex >= 0 &&
+        currentIndex < sequence.length) {
+      final tag = sequence[currentIndex].tag;
+      if (tag is SongModel) {
+        currentSong = tag;
+      }
+    }
+
+    if (currentSong == null) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: getAlbumArt(currentSong.id),
+      builder: (context, snapshot) {
+        final albumArt = snapshot.data;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16.0),
+          child: Container(
+            height: 100,
+            decoration: BoxDecoration(
+              image: albumArt != null
+                  ? DecorationImage(
+                      image: MemoryImage(albumArt),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: Theme.of(context).colorScheme.surfaceVariant,
+            ),
+            child: MusicBar(
+              audioPlayer: audioPlayer,
+              getAlbumArt: getAlbumArt,
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget buildPills() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          buildPill("WORKOUT", SelectedPill.connection, Iconsax.flash),
+          buildPill("STATUS", SelectedPill.status, Iconsax.chart_2),
+          buildPill("MUSIC", SelectedPill.music, Iconsax.musicnote),
+        ],
+      ),
+    );
+  }
+
+  Widget buildPill(String label, SelectedPill pill, IconData icon) {
+    bool isSelected = selectedPill == pill;
+    return Expanded(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        child: InkWell(
+          onTap: () {
+            setState(() => selectedPill = pill);
+            _animationController.reset();
+            _animationController.forward();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -707,12 +734,12 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.connection:
         return Expanded(
           child: FadeTransition(
-            opacity: _pillAnim,
+            opacity: _fadeAnimation,
             child: ExerciseList(
               goalExercises: goalExercises,
               stopwatchExercises: stopwatchExercises,
               exerciseGoals: exerciseGoals,
-              onEditGoal: editGoal,
+              onEditGoal: editGoal, // <-- NEW SIGNATURE!
               getExerciseIcon: getExerciseIcon,
             ),
           ),
@@ -720,7 +747,7 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.status:
         return Expanded(
           child: FadeTransition(
-            opacity: _pillAnim,
+            opacity: _fadeAnimation,
             child: Consumer<ExerciseStatusProvider>(
               builder: (context, provider, child) => StatusTab(
                 completedExercises: provider.completedExercises,
@@ -733,7 +760,7 @@ class _HomePageState extends State<HomePage>
       case SelectedPill.music:
         return Expanded(
           child: FadeTransition(
-            opacity: _pillAnim,
+            opacity: _fadeAnimation,
             child: Container(
               margin: const EdgeInsets.only(top: 8, bottom: 0),
               child: Column(
@@ -756,47 +783,92 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarContrastEnforced: false,
-      ),
-      child: Scaffold(
-        extendBody: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              buildTopBar(),
-              buildHeading(),
-              buildPills(),
-              buildContentArea(),
-            ],
-          ),
+    return Scaffold(
+      extendBody: true,
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildTopBar(),
+            buildHeading(),
+            buildPills(),
+            buildContentArea(),
+          ],
         ),
-        bottomNavigationBar: Container(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-            child: !isKeyboardOpen
-                ? SizedBox(
-                    height: 80,
-                    child: MusicBar(
-                      audioPlayer: AudioService.audioPlayer,
-                      getAlbumArt: getAlbumArt,
-                    ),
-                  )
-                : const SizedBox()),
+      ),
+      bottomNavigationBar: const SizedBox.shrink(),
+    );
+  }
+}
+
+// Custom Switch with Android Thumb
+class _AndroidSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _AndroidSwitch({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch(
+      value: value,
+      onChanged: onChanged,
+      activeColor: Colors.green,
+      inactiveThumbColor: Theme.of(context).colorScheme.outline,
+      inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
+      activeTrackColor: Colors.green.withOpacity(0.4),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      thumbIcon: MaterialStateProperty.resolveWith<Icon?>(
+        (states) {
+          if (value) {
+            return const Icon(Icons.android, color: Colors.white, size: 22);
+          }
+          return const Icon(Icons.android_outlined,
+              color: Colors.grey, size: 20);
+        },
       ),
     );
   }
 }
 
-class _PillMeta {
-  final String label;
-  final SelectedPill pill;
-  final IconData icon;
-  const _PillMeta(this.label, this.pill, this.icon);
+// Custom Switch for Dark Mode with sun/moon thumb
+class _DarkModeSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final bool isDisabled;
+
+  const _DarkModeSwitch({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+    required this.isDisabled,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch(
+      value: value,
+      onChanged: onChanged,
+      activeColor: Theme.of(context).colorScheme.primary,
+      inactiveThumbColor: Theme.of(context).colorScheme.outline,
+      inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      thumbIcon: MaterialStateProperty.resolveWith<Icon?>(
+        (states) {
+          if (value) {
+            return const Icon(Icons.nightlight_round,
+                color: Colors.white, size: 20);
+          }
+          return const Icon(Icons.wb_sunny, color: Colors.orange, size: 20);
+        },
+      ),
+    );
+  }
 }

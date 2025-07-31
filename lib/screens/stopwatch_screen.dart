@@ -79,22 +79,25 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: colorScheme.onBackground),
         title: Text(
           widget.exercise,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: colorScheme.onBackground),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: colorScheme.background,
         elevation: 0,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_elapsedTime,
-              style: const TextStyle(color: Colors.white, fontSize: 48)),
+              style: TextStyle(color: colorScheme.onBackground, fontSize: 48)),
           const SizedBox(height: 40),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -102,28 +105,28 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
               ElevatedButton(
                 onPressed: _start,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: colorScheme.surfaceVariant,
                 ),
-                child:
-                    const Text('Start', style: TextStyle(color: Colors.black)),
+                child: Text('Start',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant)),
               ),
               const SizedBox(width: 20),
               ElevatedButton(
                 onPressed: _pause,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: colorScheme.surfaceVariant,
                 ),
-                child:
-                    const Text('Pause', style: TextStyle(color: Colors.black)),
+                child: Text('Pause',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant)),
               ),
               const SizedBox(width: 20),
               ElevatedButton(
                 onPressed: _reset,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: colorScheme.surfaceVariant,
                 ),
-                child:
-                    const Text('Reset', style: TextStyle(color: Colors.black)),
+                child: Text('Reset',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant)),
               ),
             ],
           ),
@@ -131,8 +134,8 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
           ElevatedButton(
             onPressed: _complete,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
             child: const Text('Complete'),

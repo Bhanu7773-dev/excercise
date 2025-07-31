@@ -6,6 +6,7 @@ import '../model/avatar_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/theme_provider.dart';
 
 class EditAvatarPage extends StatefulWidget {
   const EditAvatarPage({super.key});
@@ -21,6 +22,11 @@ class _EditAvatarPageState extends State<EditAvatarPage>
   @override
   void initState() {
     super.initState();
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<AvatarProvider>(context, listen: false);
       provider.loadUserName().then((_) {
@@ -28,11 +34,13 @@ class _EditAvatarPageState extends State<EditAvatarPage>
         setState(() {});
       });
     });
+  }
 
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
+  @override
+  void dispose() {
+    _waveController.dispose();
+    _nameController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickAvatar(BuildContext context) async {
@@ -43,13 +51,6 @@ class _EditAvatarPageState extends State<EditAvatarPage>
       Provider.of<AvatarProvider>(context, listen: false)
           .setAvatar(File(picked.path));
     }
-  }
-
-  @override
-  void dispose() {
-    _waveController.dispose();
-    _nameController.dispose();
-    super.dispose();
   }
 
   Future<void> _launchURL(String url) async {
@@ -64,25 +65,32 @@ class _EditAvatarPageState extends State<EditAvatarPage>
   @override
   Widget build(BuildContext context) {
     final avatarFile = context.watch<AvatarProvider>().avatarFile;
-    final brightness = Theme.of(context).brightness;
+
+    // This is the only correct way to check effective theme in Flutter!
+    final brightness = Theme.of(context).colorScheme.brightness;
     final isDark = brightness == Brightness.dark;
+
+    // Optionally, if you want to rebuild on theme changes (including system mode):
+    final themeMode = Provider.of<ThemeProvider>(context).themeMode;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF181A20) : Colors.white,
       body: Stack(
         children: [
-          // Animated Wavy Background
+          // Animated Wavy Background (TOP ONLY!)
           SizedBox(
-            height: 260,
             width: double.infinity,
+            height: 270,
             child: AnimatedBuilder(
+              key: ValueKey(themeMode), // ensures repaint on theme change!
               animation: _waveController,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: _AnimatedWavyBackgroundPainter(
+                  painter: MultiWavyBackgroundPainter(
                     animationValue: _waveController.value,
                     isDark: isDark,
                   ),
+                  size: Size(MediaQuery.of(context).size.width, 270),
                 );
               },
             ),
@@ -408,60 +416,103 @@ class _EditAvatarPageState extends State<EditAvatarPage>
   }
 }
 
-// Animated Wavy Background Painter for Avatar Page
-class _AnimatedWavyBackgroundPainter extends CustomPainter {
+// Multi-layer wavy animated background painter (TOP ONLY)
+class MultiWavyBackgroundPainter extends CustomPainter {
   final double animationValue;
   final bool isDark;
-  _AnimatedWavyBackgroundPainter(
-      {required this.animationValue, required this.isDark});
+  MultiWavyBackgroundPainter({
+    required this.animationValue,
+    required this.isDark,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Wavy main accent
-    final Paint paint = Paint()
-      ..color = isDark
-          ? const Color(0xFF6366F1)
-          : const Color(0xFF9B5DE5).withOpacity(0.82);
-    final Path path = Path();
-    final double waveHeight = 22 + 10 * sin(animationValue * 2 * pi);
-    final double wavePhase = animationValue * 2 * pi;
+    final double maxHeight = size.height;
 
-    path.moveTo(0, size.height * 0.65);
-    for (double i = 0; i <= size.width; i += 1) {
-      double y = size.height * 0.65 +
-          waveHeight * sin((i / size.width * 2 * pi) + wavePhase);
-      path.lineTo(i, y);
+    // Layer 1: Main deep wave
+    final Paint paint1 = Paint()
+      ..shader = LinearGradient(
+        colors: isDark
+            ? [
+                const Color(0xFF181A20),
+                const Color(0xFF232946),
+                const Color(0xFF6366F1),
+              ]
+            : [
+                const Color(0xFFF8F9FF),
+                const Color(0xFF9B5DE5),
+                const Color(0xFF64B5F6),
+              ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, maxHeight));
+    final Path path1 = Path();
+    double y1(double x) =>
+        maxHeight * 0.54 +
+        22 * sin((x / size.width * 2 * pi) + (animationValue * 2 * pi));
+    path1.moveTo(0, y1(0));
+    for (double i = 0; i <= size.width; i++) {
+      path1.lineTo(i, y1(i));
     }
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
+    path1.lineTo(size.width, 0);
+    path1.lineTo(0, 0);
+    path1.close();
+    canvas.drawPath(path1, paint1);
 
-    canvas.drawPath(path, paint);
-
-    // Overlay for depth (also animated)
-    final Paint overlay = Paint()
-      ..color = isDark
-          ? const Color(0xFF181A20).withOpacity(0.85)
-          : Colors.white.withOpacity(0.85);
-    final Path overlayPath = Path();
-    final double overlayWaveHeight = 16 + 6 * cos(animationValue * 2 * pi);
-
-    overlayPath.moveTo(0, size.height * 0.38);
-    for (double i = 0; i <= size.width; i += 1) {
-      double y = size.height * 0.38 +
-          overlayWaveHeight *
-              cos((i / size.width * 2 * pi) + wavePhase + pi / 2);
-      overlayPath.lineTo(i, y);
+    // Layer 2: Shallow accent wave
+    final Paint paint2 = Paint()
+      ..shader = LinearGradient(
+        colors: isDark
+            ? [
+                const Color(0xFF6366F1).withOpacity(0.5),
+                const Color(0xFF232946).withOpacity(0.5)
+              ]
+            : [
+                const Color(0xFF9B5DE5).withOpacity(0.4),
+                const Color(0xFF64B5F6).withOpacity(0.3)
+              ],
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, maxHeight));
+    final Path path2 = Path();
+    double y2(double x) =>
+        maxHeight * 0.68 +
+        12 *
+            cos((x / size.width * 2 * pi) + (animationValue * 2 * pi) + pi / 2);
+    path2.moveTo(0, y2(0));
+    for (double i = 0; i <= size.width; i++) {
+      path2.lineTo(i, y2(i));
     }
-    overlayPath.lineTo(size.width, 0);
-    overlayPath.lineTo(0, 0);
-    overlayPath.close();
+    path2.lineTo(size.width, 0);
+    path2.lineTo(0, 0);
+    path2.close();
+    canvas.drawPath(path2, paint2);
 
-    canvas.drawPath(overlayPath, overlay);
+    // Layer 3: Soft highlight wave
+    final Paint paint3 = Paint()
+      ..shader = LinearGradient(
+        colors: isDark
+            ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.02)]
+            : [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.05)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, maxHeight));
+    final Path path3 = Path();
+    double y3(double x) =>
+        maxHeight * 0.39 +
+        10 * sin((x / size.width * 2 * pi) - (animationValue * 2 * pi));
+    path3.moveTo(0, y3(0));
+    for (double i = 0; i <= size.width; i++) {
+      path3.lineTo(i, y3(i));
+    }
+    path3.lineTo(size.width, 0);
+    path3.lineTo(0, 0);
+    path3.close();
+    canvas.drawPath(path3, paint3);
   }
 
   @override
-  bool shouldRepaint(covariant _AnimatedWavyBackgroundPainter oldDelegate) =>
+  bool shouldRepaint(covariant MultiWavyBackgroundPainter oldDelegate) =>
       oldDelegate.animationValue != animationValue ||
       oldDelegate.isDark != isDark;
 }

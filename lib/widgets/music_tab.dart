@@ -32,7 +32,6 @@ class _MusicTabState extends State<MusicTab> {
   }
 
   Future<void> _requestPermissionAndFetchSongs() async {
-    // Android 13+ uses Permission.audio, older uses Permission.storage.
     var status = await Permission.audio.request();
     if (!status.isGranted) {
       status = await Permission.storage.request();
@@ -64,14 +63,13 @@ class _MusicTabState extends State<MusicTab> {
     });
   }
 
-  // Set SongModel as tag so MusicBar can always resolve the current song
   void _buildPlaylist(List<SongModel> songs) {
     AudioService.playlist = ConcatenatingAudioSource(
       children: songs
           .where((song) => song.uri != null)
           .map((song) => AudioSource.uri(
                 Uri.parse(song.uri!),
-                tag: song, // Attach the song model as tag
+                tag: song,
               ))
           .toList(),
     );
@@ -117,31 +115,35 @@ class _MusicTabState extends State<MusicTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Set music list bg to same as home page bg
-    final backgroundColor = Theme.of(context).colorScheme.background;
-    // Set song tile bg color to same as exercise list tiles
-    final songTileColor = const Color(0xFF1B2222);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: backgroundColor, // Use home page background
+        color: colorScheme.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       ),
       child: Builder(builder: (context) {
         if (_isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+              child: CircularProgressIndicator(color: colorScheme.primary));
         }
         if (!_permissionGranted) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text("Permission Required",
-                    style: TextStyle(color: Colors.white, fontSize: 18)),
+                Text("Permission Required",
+                    style: TextStyle(
+                        color: colorScheme.onBackground, fontSize: 18)),
                 const SizedBox(height: 10),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                  ),
                   onPressed: _requestPermissionAndFetchSongs,
                   child: const Text("Grant Permission"),
                 )
@@ -150,12 +152,11 @@ class _MusicTabState extends State<MusicTab> {
           );
         }
         if (_filteredSongs.isEmpty) {
-          return const Center(
+          return Center(
               child: Text("No songs found.",
-                  style: TextStyle(color: Colors.white)));
+                  style: TextStyle(color: colorScheme.onBackground)));
         }
 
-        // Use StreamBuilder to highlight currently playing song
         return StreamBuilder<int?>(
             stream: AudioService.audioPlayer.currentIndexStream,
             builder: (context, snapshot) {
@@ -167,11 +168,7 @@ class _MusicTabState extends State<MusicTab> {
                 itemCount: _filteredSongs.length,
                 itemBuilder: (context, index) {
                   final song = _filteredSongs[index];
-
-                  // Find the index in _songs for correct play index
                   final realIndex = _songs.indexWhere((s) => s.id == song.id);
-
-                  // Highlight if this song is currently playing
                   bool isCurrentSong = false;
                   final sequence = AudioService.audioPlayer.sequence;
                   if (currentIndex != null &&
@@ -190,25 +187,19 @@ class _MusicTabState extends State<MusicTab> {
                     margin: const EdgeInsets.symmetric(vertical: 3),
                     decoration: BoxDecoration(
                       color: isCurrentSong
-                          ? Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.12)
-                          : songTileColor, // Use exercise list tile bg color
+                          ? colorScheme.primary.withOpacity(0.12)
+                          : colorScheme.surfaceVariant,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isCurrentSong
-                            ? Theme.of(context).colorScheme.primary
+                            ? colorScheme.primary
                             : Colors.transparent,
                         width: 1.0,
                       ),
                       boxShadow: [
                         if (isCurrentSong)
                           BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.07),
+                            color: colorScheme.primary.withOpacity(0.07),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -225,9 +216,10 @@ class _MusicTabState extends State<MusicTab> {
                           nullArtworkWidget: Container(
                             width: 36,
                             height: 36,
-                            color: const Color(0xFF232323),
-                            child: const Icon(Iconsax.musicnote,
-                                color: Colors.grey, size: 18),
+                            color: colorScheme.surface,
+                            child: Icon(Iconsax.musicnote,
+                                color: colorScheme.onSurface.withOpacity(0.5),
+                                size: 18),
                           ),
                           artworkWidth: 36,
                           artworkHeight: 36,
@@ -237,7 +229,7 @@ class _MusicTabState extends State<MusicTab> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: colorScheme.onSurface,
                             fontWeight: isCurrentSong
                                 ? FontWeight.bold
                                 : FontWeight.w600,
@@ -248,8 +240,8 @@ class _MusicTabState extends State<MusicTab> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: isCurrentSong
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.white70,
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
                             fontWeight: isCurrentSong
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -262,15 +254,12 @@ class _MusicTabState extends State<MusicTab> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isCurrentSong
-                                ? Theme.of(context).colorScheme.primary
-                                : const Color(0xFF232323),
+                                ? colorScheme.primary
+                                : colorScheme.surface,
                             boxShadow: [
                               if (isCurrentSong)
                                 BoxShadow(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.18),
+                                  color: colorScheme.primary.withOpacity(0.18),
                                   blurRadius: 5,
                                   offset: const Offset(0, 2),
                                 ),
@@ -282,8 +271,8 @@ class _MusicTabState extends State<MusicTab> {
                                 ? Iconsax.pause
                                 : Iconsax.play,
                             color: isCurrentSong
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Colors.white,
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurface,
                             size: 19,
                           ),
                         ),

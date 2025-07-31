@@ -60,14 +60,21 @@ class _StatusTabState extends State<StatusTab> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SafeArea(
       child: Container(
-        color: Colors.black,
+        color: colorScheme.background,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: FutureBuilder<List<Exercise>>(
             future: _filteredExercisesFuture,
             builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
               final exercises = snapshot.data ?? [];
               final repExercises =
                   exercises.where((e) => !e.isTimeBased).toList();
@@ -77,12 +84,16 @@ class _StatusTabState extends State<StatusTab> {
               final repNames = repExercises.map((e) => e.name).toSet().toList();
               if (selectedRepExercise == null && repNames.isNotEmpty) {
                 selectedRepExercise = repNames.first;
+              } else if (repNames.isEmpty) {
+                selectedRepExercise = null;
               }
 
               final timeNames =
                   timeExercises.map((e) => e.name).toSet().toList();
               if (selectedTimeExercise == null && timeNames.isNotEmpty) {
                 selectedTimeExercise = timeNames.first;
+              } else if (timeNames.isEmpty) {
+                selectedTimeExercise = null;
               }
 
               final weekDays = getWeekdays();
@@ -114,18 +125,12 @@ class _StatusTabState extends State<StatusTab> {
                   : 0;
               double repYMax = ((maxRep / 50).ceil() * 50).toDouble();
               if (repYMax < 50) repYMax = 50;
-              List<double> repLeftTitles = [
-                for (double y = 0; y <= repYMax; y += 50) y
-              ];
 
               double maxMin = timeBuckets.isNotEmpty
                   ? timeBuckets.reduce((a, b) => a > b ? a : b)
                   : 0;
               double lineYMax = ((maxMin / 5).ceil() * 5).toDouble();
               if (lineYMax < 5) lineYMax = 5;
-              List<double> timeLeftTitles = [
-                for (double y = 0; y <= lineYMax; y += 5) y
-              ];
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -137,14 +142,14 @@ class _StatusTabState extends State<StatusTab> {
                           'Your Progress',
                           style: GoogleFonts.poppins(
                             fontSize: 24,
-                            color: Colors.white,
+                            color: colorScheme.onBackground,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.calendar_month,
-                            color: Colors.white),
+                        icon: Icon(Icons.calendar_month,
+                            color: colorScheme.onBackground),
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -152,6 +157,17 @@ class _StatusTabState extends State<StatusTab> {
                             firstDate: DateTime.now()
                                 .subtract(const Duration(days: 365)),
                             lastDate: DateTime.now(),
+                            builder: (context, child) {
+                              return Theme(
+                                data: theme.copyWith(
+                                  colorScheme: colorScheme.copyWith(
+                                    primary: colorScheme.primary,
+                                    onPrimary: colorScheme.onPrimary,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
                           if (picked != null) {
                             _onDateChanged(picked);
@@ -171,9 +187,11 @@ class _StatusTabState extends State<StatusTab> {
                         Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(color: Colors.white10, width: 1),
+                            side: BorderSide(
+                                color: colorScheme.outline.withOpacity(0.2),
+                                width: 1),
                           ),
-                          color: Colors.grey[900],
+                          color: colorScheme.surfaceVariant,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 12, horizontal: 8),
@@ -182,35 +200,43 @@ class _StatusTabState extends State<StatusTab> {
                               children: [
                                 Row(
                                   children: [
-                                    const Text("Rep Exercise: ",
+                                    Text("Rep Exercise: ",
                                         style: TextStyle(
-                                            color: Colors.white,
+                                            color: colorScheme.onSurfaceVariant,
                                             fontWeight: FontWeight.bold)),
-                                    DropdownButton<String>(
-                                      dropdownColor: Colors.black,
-                                      value: selectedRepExercise,
-                                      icon: const Icon(Icons.arrow_drop_down,
-                                          color: Colors.white),
-                                      items: repNames
-                                          .map((name) => DropdownMenuItem(
-                                                value: name,
-                                                child: Text(
-                                                  name,
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ))
-                                          .toList(),
-                                      onChanged: (val) {
-                                        setState(
-                                            () => selectedRepExercise = val);
-                                      },
-                                    ),
+                                    if (repNames.isNotEmpty)
+                                      DropdownButton<String>(
+                                        dropdownColor: colorScheme.surface,
+                                        value: selectedRepExercise,
+                                        icon: Icon(Icons.arrow_drop_down,
+                                            color:
+                                                colorScheme.onSurfaceVariant),
+                                        items: repNames
+                                            .map((name) => DropdownMenuItem(
+                                                  value: name,
+                                                  child: Text(
+                                                    name,
+                                                    style: TextStyle(
+                                                        color: colorScheme
+                                                            .onSurface),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                        onChanged: (val) {
+                                          setState(
+                                              () => selectedRepExercise = val);
+                                        },
+                                      )
+                                    else
+                                      Text(
+                                        "No Data",
+                                        style: TextStyle(
+                                            color: colorScheme.outline),
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                SizedBox(
-                                  height: 120,
+                                Expanded(
                                   child: BarChart(
                                     BarChartData(
                                       alignment: BarChartAlignment.spaceAround,
@@ -219,7 +245,14 @@ class _StatusTabState extends State<StatusTab> {
                                       barTouchData:
                                           BarTouchData(enabled: false),
                                       gridData: FlGridData(
-                                          show: true, horizontalInterval: 50),
+                                          show: true,
+                                          horizontalInterval: 50,
+                                          getDrawingHorizontalLine: (value) {
+                                            return FlLine(
+                                                color: colorScheme.outline
+                                                    .withOpacity(0.2),
+                                                strokeWidth: 1);
+                                          }),
                                       titlesData: FlTitlesData(
                                         leftTitles: AxisTitles(
                                           sideTitles: SideTitles(
@@ -227,16 +260,13 @@ class _StatusTabState extends State<StatusTab> {
                                             interval: 50,
                                             reservedSize: 32,
                                             getTitlesWidget: (value, meta) {
-                                              if (repLeftTitles
-                                                  .contains(value)) {
-                                                return Text(
-                                                  value.round().toString(),
-                                                  style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 11),
-                                                );
-                                              }
-                                              return const SizedBox.shrink();
+                                              return Text(
+                                                value.round().toString(),
+                                                style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontSize: 11),
+                                              );
                                             },
                                           ),
                                         ),
@@ -245,12 +275,14 @@ class _StatusTabState extends State<StatusTab> {
                                             showTitles: true,
                                             getTitlesWidget: (v, meta) {
                                               int idx = v.toInt();
-                                              if (idx < 0 || idx > 6)
+                                              if (idx < 0 || idx > 6) {
                                                 return const SizedBox.shrink();
+                                              }
                                               return Text(
                                                 weekDays[idx],
-                                                style: const TextStyle(
-                                                    color: Colors.white,
+                                                style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
                                                     fontSize: 11),
                                               );
                                             },
@@ -272,7 +304,7 @@ class _StatusTabState extends State<StatusTab> {
                                             BarChartRodData(
                                               toY: repTotals[i].toDouble(),
                                               width: 18,
-                                              color: Colors.greenAccent,
+                                              color: colorScheme.primary,
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
@@ -283,10 +315,10 @@ class _StatusTabState extends State<StatusTab> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   "Swipe left for timed exercise graph →",
                                   style: TextStyle(
-                                      color: Colors.white60, fontSize: 12),
+                                      color: colorScheme.outline, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -295,9 +327,11 @@ class _StatusTabState extends State<StatusTab> {
                         Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
-                            side: BorderSide(color: Colors.white10, width: 1),
+                            side: BorderSide(
+                                color: colorScheme.outline.withOpacity(0.2),
+                                width: 1),
                           ),
-                          color: Colors.grey[900],
+                          color: colorScheme.surfaceVariant,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 12, horizontal: 8),
@@ -306,35 +340,43 @@ class _StatusTabState extends State<StatusTab> {
                               children: [
                                 Row(
                                   children: [
-                                    const Text("Timed Exercise: ",
+                                    Text("Timed Exercise: ",
                                         style: TextStyle(
-                                            color: Colors.white,
+                                            color: colorScheme.onSurfaceVariant,
                                             fontWeight: FontWeight.bold)),
-                                    DropdownButton<String>(
-                                      dropdownColor: Colors.black,
-                                      value: selectedTimeExercise,
-                                      icon: const Icon(Icons.arrow_drop_down,
-                                          color: Colors.white),
-                                      items: timeNames
-                                          .map((name) => DropdownMenuItem(
-                                                value: name,
-                                                child: Text(
-                                                  name,
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ))
-                                          .toList(),
-                                      onChanged: (val) {
-                                        setState(
-                                            () => selectedTimeExercise = val);
-                                      },
-                                    ),
+                                    if (timeNames.isNotEmpty)
+                                      DropdownButton<String>(
+                                        dropdownColor: colorScheme.surface,
+                                        value: selectedTimeExercise,
+                                        icon: Icon(Icons.arrow_drop_down,
+                                            color:
+                                                colorScheme.onSurfaceVariant),
+                                        items: timeNames
+                                            .map((name) => DropdownMenuItem(
+                                                  value: name,
+                                                  child: Text(
+                                                    name,
+                                                    style: TextStyle(
+                                                        color: colorScheme
+                                                            .onSurface),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                        onChanged: (val) {
+                                          setState(
+                                              () => selectedTimeExercise = val);
+                                        },
+                                      )
+                                    else
+                                      Text(
+                                        "No Data",
+                                        style: TextStyle(
+                                            color: colorScheme.outline),
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                SizedBox(
-                                  height: 120,
+                                Expanded(
                                   child: LineChart(
                                     LineChartData(
                                       minX: 0,
@@ -342,7 +384,14 @@ class _StatusTabState extends State<StatusTab> {
                                       minY: 0,
                                       maxY: lineYMax,
                                       gridData: FlGridData(
-                                          show: true, horizontalInterval: 5),
+                                          show: true,
+                                          horizontalInterval: 5,
+                                          getDrawingHorizontalLine: (value) {
+                                            return FlLine(
+                                                color: colorScheme.outline
+                                                    .withOpacity(0.2),
+                                                strokeWidth: 1);
+                                          }),
                                       titlesData: FlTitlesData(
                                         leftTitles: AxisTitles(
                                           sideTitles: SideTitles(
@@ -352,8 +401,9 @@ class _StatusTabState extends State<StatusTab> {
                                             getTitlesWidget: (v, meta) {
                                               return Text(
                                                 "${v.round()} min",
-                                                style: const TextStyle(
-                                                    color: Colors.white,
+                                                style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
                                                     fontSize: 10),
                                               );
                                             },
@@ -365,12 +415,14 @@ class _StatusTabState extends State<StatusTab> {
                                             getTitlesWidget: (v, meta) {
                                               int idx = v.toInt();
                                               if (idx < 0 ||
-                                                  idx >= buckets.length)
+                                                  idx >= buckets.length) {
                                                 return const SizedBox.shrink();
+                                              }
                                               return Text(
                                                 buckets[idx],
-                                                style: const TextStyle(
-                                                    color: Colors.white,
+                                                style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
                                                     fontSize: 10),
                                               );
                                             },
@@ -391,7 +443,7 @@ class _StatusTabState extends State<StatusTab> {
                                               (i) => FlSpot(i.toDouble(),
                                                   timeBuckets[i])),
                                           isCurved: false,
-                                          color: Colors.greenAccent,
+                                          color: colorScheme.primary,
                                           barWidth: 4,
                                           isStrokeCapRound: true,
                                           dotData: FlDotData(show: true),
@@ -401,10 +453,10 @@ class _StatusTabState extends State<StatusTab> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   "← Swipe right for rep exercise graph",
                                   style: TextStyle(
-                                      color: Colors.white60, fontSize: 12),
+                                      color: colorScheme.outline, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -418,13 +470,13 @@ class _StatusTabState extends State<StatusTab> {
                   const SizedBox(height: 16),
                   Center(
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh, color: Colors.white),
-                      label: const Text(
+                      icon: Icon(Icons.refresh, color: colorScheme.onError),
+                      label: Text(
                         "Reset Progress",
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: colorScheme.onError),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
+                        backgroundColor: colorScheme.error,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -435,21 +487,28 @@ class _StatusTabState extends State<StatusTab> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            backgroundColor: Colors.grey[900],
-                            title: const Text("Reset All Progress?"),
-                            content: const Text(
+                            backgroundColor: colorScheme.surfaceVariant,
+                            title: Text("Reset All Progress?",
+                                style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant)),
+                            content: Text(
                               "This will clear all your progress for today. This cannot be undone. Are you sure?",
-                              style: TextStyle(fontSize: 15),
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: colorScheme.onSurfaceVariant),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text("Cancel"),
+                                child: Text("Cancel",
+                                    style: TextStyle(
+                                        color: colorScheme.onSurfaceVariant)),
                               ),
                               ElevatedButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
+                                  backgroundColor: colorScheme.error,
+                                  foregroundColor: colorScheme.onError,
                                 ),
                                 child: const Text("Reset"),
                               ),
@@ -473,6 +532,22 @@ class _StatusTabState extends State<StatusTab> {
   }
 
   List<Widget> _exerciseListTiles(List<Exercise> exercises) {
+    if (exercises.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Text(
+            "No exercises completed on this day.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color:
+                  Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+              fontSize: 16,
+            ),
+          ),
+        )
+      ];
+    }
     final sortedExercises = List<Exercise>.from(exercises)
       ..sort((a, b) => b.lastCompleted.compareTo(a.lastCompleted));
     return List.generate(
@@ -482,6 +557,7 @@ class _StatusTabState extends State<StatusTab> {
   }
 
   Widget _exerciseListTile(Exercise exercise) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isTimeBased = exercise.isTimeBased;
     final totalValue = isTimeBased
         ? exercise.totalDuration.inSeconds.toDouble()
@@ -492,7 +568,7 @@ class _StatusTabState extends State<StatusTab> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: colorScheme.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -505,11 +581,11 @@ class _StatusTabState extends State<StatusTab> {
                 exercise.name,
                 style: GoogleFonts.poppins(
                   fontSize: 18,
-                  color: Colors.white,
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Icon(Icons.check_circle, color: Colors.greenAccent),
+              Icon(Icons.check_circle, color: colorScheme.primary),
             ],
           ),
           const SizedBox(height: 6),
@@ -519,7 +595,7 @@ class _StatusTabState extends State<StatusTab> {
                 : '${exercise.totalReps} reps completed',
             style: GoogleFonts.poppins(
               fontSize: 14,
-              color: Colors.grey[400],
+              color: colorScheme.onSurfaceVariant.withOpacity(0.8),
             ),
           ),
           const SizedBox(height: 4),
@@ -527,14 +603,14 @@ class _StatusTabState extends State<StatusTab> {
             'Last: ${exercise.lastCompleted.toLocal().toString().split('.')[0]}',
             style: GoogleFonts.poppins(
               fontSize: 12,
-              color: Colors.grey[500],
+              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
             ),
           ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: progressPercent,
-            backgroundColor: Colors.grey[800],
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+            backgroundColor: colorScheme.surface,
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
             minHeight: 6,
           ),
         ],
