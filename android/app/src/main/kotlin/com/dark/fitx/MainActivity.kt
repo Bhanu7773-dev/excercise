@@ -1,4 +1,4 @@
-package com.example.my_firstapp
+package com.dark.fitx
 
 import io.flutter.embedding.android.FlutterActivity
 

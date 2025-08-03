@@ -3,10 +3,15 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Google services Gradle plugin for Firebase
+    id("com.google.gms.google-services")
+    // Crashlytics and Performance plugins
+    id("com.google.firebase.crashlytics")
+    id("com.google.firebase.firebase-perf")
 }
 
 android {
-    namespace = "com.example.my_firstapp"
+    namespace = "com.dark.fitx"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.13599879"
 
@@ -20,11 +25,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.my_firstapp"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        applicationId = "com.dark.fitx"
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -41,4 +43,16 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Import the Firebase BoM (Bill of Materials)
+    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
+
+    // Add Firebase SDKs you need:
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-perf")
+    // Add other Firebase dependencies here as needed
 }
