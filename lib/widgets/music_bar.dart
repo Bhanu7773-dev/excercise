@@ -40,7 +40,7 @@ class MusicBar extends StatelessWidget {
         return ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context)
