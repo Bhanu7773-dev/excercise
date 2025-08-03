@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
@@ -12,14 +13,12 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
 import 'package:my_firstapp/utils/theme_provider.dart';
-import 'package:my_firstapp/model/music_bar_provider.dart'; // <-- correct provider import
+import 'package:my_firstapp/model/music_bar_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
 import 'edit_avatar_page.dart';
 import 'status_tab.dart';
-import 'package:my_firstapp/widgets/music_bar.dart';
-import 'package:my_firstapp/widgets/music_bar_2.dart';
 
 enum SelectedPill { connection, status, music }
 
@@ -246,20 +245,13 @@ class _HomePageState extends State<HomePage>
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Switch(
+                        GlassMusicPlayerSwitch(
                           value: useGlassPlayer,
                           onChanged: (value) {
                             musicBarProvider.setUseGlassPlayer(value);
                             setStateDialog(() {});
                             setState(() {});
                           },
-                          activeColor: Theme.of(context).colorScheme.primary,
-                          inactiveThumbColor:
-                              Theme.of(context).colorScheme.outline,
-                          inactiveTrackColor:
-                              Theme.of(context).colorScheme.outlineVariant,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
                         ),
                       ],
                     ),
@@ -490,7 +482,7 @@ class _HomePageState extends State<HomePage>
                   playerState.processingState != ProcessingState.idle &&
                   playerState.processingState != ProcessingState.completed;
 
-              if (isMusicPlaying && useGlassPlayer == false) {
+              if (isMusicPlaying && !useGlassPlayer) {
                 return buildMusicPlayerCard();
               } else {
                 return buildRememberCard(userName);
@@ -817,33 +809,44 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     final musicBarProvider = Provider.of<MusicBarProvider>(context);
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildTopBar(),
-            buildHeading(musicBarProvider.useGlassPlayer == true),
-            buildPills(),
-            buildContentArea(),
-          ],
-        ),
+    // ---- IMPLEMENTATION: Transparent System Bars ----
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
-      bottomNavigationBar: musicBarProvider.useGlassPlayer == false
-          ? const SizedBox.shrink()
-          : Padding(
-              padding: const EdgeInsets.all(10),
-              child: SizedBox(
-                height: 80,
-                child: MusicBar(
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildTopBar(),
+              buildHeading(musicBarProvider.useGlassPlayer),
+              buildPills(),
+              buildContentArea(),
+            ],
+          ),
+        ),
+        bottomNavigationBar: musicBarProvider.useGlassPlayer
+            ? Padding(
+                padding: const EdgeInsets.all(10),
+                child: SizedBox(
+                  height: 80,
+                  child: MusicBar2(
                     audioPlayer: AudioService.audioPlayer,
-                    getAlbumArt: getAlbumArt),
-              ),
-            ),
+                    getAlbumArt: getAlbumArt,
+                  ),
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
     );
   }
 }
@@ -913,6 +916,56 @@ class _DarkModeSwitch extends StatelessWidget {
           return const Icon(Icons.wb_sunny, color: Colors.orange, size: 20);
         },
       ),
+    );
+  }
+}
+
+// Custom Switch for Glass Music Player toggle
+class GlassMusicPlayerSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const GlassMusicPlayerSwitch({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Switch(
+      value: value,
+      onChanged: onChanged,
+      inactiveThumbColor: Colors.grey.shade400,
+      inactiveTrackColor: Colors.grey.shade300,
+      activeColor: const Color.fromARGB(0, 234, 224, 224),
+      activeTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.35),
+      thumbIcon: MaterialStateProperty.resolveWith<Icon?>(
+        (states) {
+          if (value) {
+            // ON: Glowing music note
+            return Icon(
+              Iconsax.musicnote,
+              color: Theme.of(context).colorScheme.primary,
+              size: 22,
+              shadows: [
+                Shadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  blurRadius: 10,
+                  offset: Offset(0, 0),
+                ),
+              ],
+            );
+          }
+          // OFF: Grayed out music note
+          return Icon(
+            Iconsax.musicnote,
+            color: Colors.grey.shade600,
+            size: 22,
+          );
+        },
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
