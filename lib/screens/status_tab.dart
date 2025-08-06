@@ -39,18 +39,6 @@ class _StatusTabState extends State<StatusTab> {
     });
   }
 
-  List<String> getTimeBuckets() {
-    final List<String> buckets = [];
-    for (int h = 0; h < 24; h += 3) {
-      final hour = h == 0 ? 12 : (h > 12 ? h - 12 : h);
-      final period = h < 12 ? "am" : "pm";
-      buckets.add("$hour$period");
-    }
-    return buckets;
-  }
-
-  int getTimeBucketIndex(DateTime dt) => dt.hour ~/ 3;
-
   List<String> getWeekdays() =>
       ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -98,6 +86,8 @@ class _StatusTabState extends State<StatusTab> {
 
               final weekDays = getWeekdays();
               final weekStart = getStartOfWeek(selectedDate);
+
+              // Rep-based: aggregate per day in week
               List<int> repTotals = List.generate(7, (i) {
                 final day = weekStart.add(Duration(days: i));
                 final dayEx = repExercises.where(
@@ -110,15 +100,19 @@ class _StatusTabState extends State<StatusTab> {
                 return dayEx.fold<int>(0, (sum, e) => sum + e.totalReps);
               });
 
-              final buckets = getTimeBuckets();
-              List<double> timeBuckets = List.filled(buckets.length, 0);
-              if (selectedTimeExercise != null) {
-                for (var e in timeExercises
-                    .where((e) => e.name == selectedTimeExercise)) {
-                  final bIdx = getTimeBucketIndex(e.lastCompleted);
-                  timeBuckets[bIdx] += e.totalDuration.inSeconds / 60.0;
-                }
-              }
+              // Time-based: aggregate per day in week (in minutes)
+              List<double> timeTotals = List.generate(7, (i) {
+                final day = weekStart.add(Duration(days: i));
+                final dayEx = timeExercises.where(
+                  (e) =>
+                      e.name == selectedTimeExercise &&
+                      e.lastCompleted.year == day.year &&
+                      e.lastCompleted.month == day.month &&
+                      e.lastCompleted.day == day.day,
+                );
+                return dayEx.fold<double>(
+                    0, (sum, e) => sum + e.totalDuration.inSeconds / 60.0);
+              });
 
               int maxRep = repTotals.isNotEmpty
                   ? repTotals.reduce((a, b) => a > b ? a : b)
@@ -126,8 +120,8 @@ class _StatusTabState extends State<StatusTab> {
               double repYMax = ((maxRep / 50).ceil() * 50).toDouble();
               if (repYMax < 50) repYMax = 50;
 
-              double maxMin = timeBuckets.isNotEmpty
-                  ? timeBuckets.reduce((a, b) => a > b ? a : b)
+              double maxMin = timeTotals.isNotEmpty
+                  ? timeTotals.reduce((a, b) => a > b ? a : b)
                   : 0;
               double lineYMax = ((maxMin / 5).ceil() * 5).toDouble();
               if (lineYMax < 5) lineYMax = 5;
@@ -380,7 +374,7 @@ class _StatusTabState extends State<StatusTab> {
                                   child: LineChart(
                                     LineChartData(
                                       minX: 0,
-                                      maxX: 7,
+                                      maxX: 6,
                                       minY: 0,
                                       maxY: lineYMax,
                                       gridData: FlGridData(
@@ -414,12 +408,11 @@ class _StatusTabState extends State<StatusTab> {
                                             showTitles: true,
                                             getTitlesWidget: (v, meta) {
                                               int idx = v.toInt();
-                                              if (idx < 0 ||
-                                                  idx >= buckets.length) {
+                                              if (idx < 0 || idx > 6) {
                                                 return const SizedBox.shrink();
                                               }
                                               return Text(
-                                                buckets[idx],
+                                                weekDays[idx],
                                                 style: TextStyle(
                                                     color: colorScheme
                                                         .onSurfaceVariant,
@@ -439,9 +432,9 @@ class _StatusTabState extends State<StatusTab> {
                                       lineBarsData: [
                                         LineChartBarData(
                                           spots: List.generate(
-                                              buckets.length,
-                                              (i) => FlSpot(i.toDouble(),
-                                                  timeBuckets[i])),
+                                              7,
+                                              (i) => FlSpot(
+                                                  i.toDouble(), timeTotals[i])),
                                           isCurved: false,
                                           color: colorScheme.primary,
                                           barWidth: 4,
