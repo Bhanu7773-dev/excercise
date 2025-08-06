@@ -1,25 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'dart:async';
-import 'package:my_firstapp/screens/home_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../screens/login_page.dart';
+import '../screens/home_page.dart'; // Or home_page.dart if your main screen is HomePage
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
-    Timer(const Duration(seconds: 5), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+    Timer(const Duration(seconds: 3), () async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
+      if (user == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+      // If your main page is HomePage, replace HomeScreen with HomePage above
     });
   }
 

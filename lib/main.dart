@@ -22,9 +22,9 @@ import 'model/music_bar_provider.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
+      // Uncomment below if using FlutterFire CLI:
       // options: DefaultFirebaseOptions.currentPlatform,
       );
-  // Handle background message here (e.g., log or process data)
   print('Handling a background message: ${message.messageId}');
 }
 
@@ -33,7 +33,7 @@ Future<void> main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(
-      // Uncomment the next line if using FlutterFire CLI:
+      // Uncomment below if using FlutterFire CLI:
       // options: DefaultFirebaseOptions.currentPlatform,
       );
 
@@ -92,7 +92,8 @@ class MyApp extends StatelessWidget {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeProvider.themeMode,
-      home: const SplashScreen(),
+      home:
+          const SplashScreen(), // This will show splash, then login, then home
       debugShowCheckedModeBanner: false,
       navigatorObservers: [
         FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),

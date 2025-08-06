@@ -3,26 +3,26 @@ import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// App imports
 import 'package:my_firstapp/widgets/music_bar.dart';
 import 'package:my_firstapp/widgets/music_bar_2.dart';
-import 'package:provider/provider.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 import 'package:my_firstapp/model/avatar_provider.dart';
 import 'package:my_firstapp/model/exercise_status_provider.dart';
 import 'package:my_firstapp/utils/theme_provider.dart';
 import 'package:my_firstapp/model/music_bar_provider.dart';
-import 'package:my_firstapp/widgets/music_tab.dart';
+import 'package:my_firstapp/widgets/music_tab.dart'
+    show MusicTab, MusicListMode;
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_avatar_page.dart';
 import 'status_tab.dart';
-
-// Import MusicListMode from music_tab.dart for enum usage
-import 'package:my_firstapp/widgets/music_tab.dart' show MusicListMode;
 
 enum SelectedPill { connection, status, music }
 
@@ -39,12 +39,10 @@ class _HomePageState extends State<HomePage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // --- MusicTab favorite/blocked state ---
   MusicListMode _musicListMode = MusicListMode.all;
   Key _musicTabKey = UniqueKey();
   Set<int> favoriteSongIds = {};
   Set<int> blockedSongIds = {};
-  // -----------------------------
 
   Map<String, int> exerciseGoals = {
     //--- Arms
@@ -236,11 +234,8 @@ class _HomePageState extends State<HomePage>
       Provider.of<AvatarProvider>(context, listen: false).loadUserName();
     });
 
-    // --- Load favorites/blocked on init ---
     _loadFavAndBlocked();
   }
-
-  // --- FAVORITE/BLOCKED LOGIC ---
 
   Future<void> _loadFavAndBlocked() async {
     final prefs = await SharedPreferences.getInstance();
@@ -416,7 +411,7 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  // --- END FAVORITE/BLOCKED LOGIC ---
+  // --- Exercise/Category methods ---
   IconData getExerciseIcon(String name) {
     switch (name.toLowerCase()) {
       // Arms
@@ -956,8 +951,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // --- MODIFIED: MUSIC TAB FILTER BAR ---
-
   Widget buildMusicLibrary() {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
@@ -1076,7 +1069,6 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
-  // --- END MUSIC TAB FILTER BAR ---
 
   Widget buildContentArea() {
     switch (selectedPill) {
