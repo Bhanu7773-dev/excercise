@@ -17,8 +17,12 @@ import 'package:my_firstapp/model/music_bar_provider.dart';
 import 'package:my_firstapp/widgets/music_tab.dart';
 import 'package:my_firstapp/widgets/exercise_list.dart';
 import 'package:my_firstapp/utils/audio_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_avatar_page.dart';
 import 'status_tab.dart';
+
+// Import MusicListMode from music_tab.dart for enum usage
+import 'package:my_firstapp/widgets/music_tab.dart' show MusicListMode;
 
 enum SelectedPill { connection, status, music }
 
@@ -35,12 +39,59 @@ class _HomePageState extends State<HomePage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
+  // --- MusicTab favorite/blocked state ---
+  MusicListMode _musicListMode = MusicListMode.all;
+  Key _musicTabKey = UniqueKey();
+  Set<int> favoriteSongIds = {};
+  Set<int> blockedSongIds = {};
+  // -----------------------------
+
   Map<String, int> exerciseGoals = {
+    //--- Arms
+    'Tricep Dips': 10,
+    'Bicep Curls (No Equipment)': 15,
+    'Diamond Push Ups': 8,
+    'Plank Up-Downs': 10,
+    'Arm Circles': 30,
+    'Bench Dips': 12,
+    'Shoulder Tap Push Ups': 10,
+    'Overhead Arm Clap': 25,
+    'Reverse Plank': 10,
+    //--- Shoulders (extended)
+    'Pike Push Ups': 10,
+    'Shoulder Press (No Equipment)': 12,
+    'Plank to Downward Dog': 10,
+    'Wall Walks': 6,
+    'Reverse Snow Angels': 12,
+    'Handstand Hold (Wall)': 8,
+    'Wall Angels': 14,
+    'Shoulder I-Y-T Raises': 12,
+    'Scapular Push Ups': 15,
+    'Shoulder Taps': 20,
+    'Front Arm Raises': 15,
+    'Lateral Arm Raises': 15,
+    'Arm Haulers': 16,
+    'Prone Press': 12,
+    //--- Back (extended)
+    'Supermans': 10,
+    'Reverse Fly (No Equipment)': 15,
+    'Prone Y Raise': 10,
+    'Inchworms': 10,
+    'Bird Dog': 12,
+    'Standing T Raises': 15,
+    'Hip Hinge': 15,
+    'Swimmers': 16,
+    'Superman Pull': 12,
+    'Bridge Reach & Roll': 10,
+    'Back Extensions': 12,
+    'Doorway Rows': 15,
+    'Elbow Squeezes': 16,
+    'Cobra Pose': 10,
+    //--- Home/Bodyweight General
     'Push Ups': 10,
     'Sit Ups': 10,
     'Squats': 10,
     'Lunges': 10,
-    'Tricep Dips': 10,
     'Mountain Climbers': 20,
     'Burpees': 10,
     'Jumping Jacks': 20,
@@ -48,10 +99,8 @@ class _HomePageState extends State<HomePage>
     'Crunches': 15,
     'Leg Raises': 10,
     'Russian Twists': 20,
-    'Inchworms': 10,
     'Glute Bridges': 15,
     'Bicycle Crunches': 20,
-    'Supermans': 10,
     'Step-Ups (on stairs)': 20,
     'Wall Push Ups': 10,
     'Reverse Lunges': 10,
@@ -60,19 +109,58 @@ class _HomePageState extends State<HomePage>
     'Standing Calf Raises': 15,
     'Side Lunges': 10,
     'Squat Jumps': 10,
-    'Plank Up-Downs': 10,
     'Clapping Push Ups': 8,
     'Flutter Kicks': 20,
     'Hip Thrusts': 15,
     'Spiderman Push Ups': 8,
-    'Diamond Push Ups': 8,
   };
+
   final List<String> goalExercises = [
+    // Arms
+    'Tricep Dips',
+    'Bicep Curls (No Equipment)',
+    'Diamond Push Ups',
+    'Plank Up-Downs',
+    'Arm Circles',
+    'Bench Dips',
+    'Shoulder Tap Push Ups',
+    'Overhead Arm Clap',
+    'Reverse Plank',
+    // Shoulders (extended)
+    'Pike Push Ups',
+    'Shoulder Press (No Equipment)',
+    'Plank to Downward Dog',
+    'Wall Walks',
+    'Reverse Snow Angels',
+    'Handstand Hold (Wall)',
+    'Wall Angels',
+    'Shoulder I-Y-T Raises',
+    'Scapular Push Ups',
+    'Shoulder Taps',
+    'Front Arm Raises',
+    'Lateral Arm Raises',
+    'Arm Haulers',
+    'Prone Press',
+    // Back (extended)
+    'Supermans',
+    'Reverse Fly (No Equipment)',
+    'Prone Y Raise',
+    'Inchworms',
+    'Bird Dog',
+    'Standing T Raises',
+    'Hip Hinge',
+    'Swimmers',
+    'Superman Pull',
+    'Bridge Reach & Roll',
+    'Back Extensions',
+    'Doorway Rows',
+    'Elbow Squeezes',
+    'Cobra Pose',
+    // Home/Bodyweight General
     'Push Ups',
     'Sit Ups',
     'Squats',
     'Lunges',
-    'Tricep Dips',
     'Mountain Climbers',
     'Burpees',
     'Jumping Jacks',
@@ -80,10 +168,8 @@ class _HomePageState extends State<HomePage>
     'Crunches',
     'Leg Raises',
     'Russian Twists',
-    'Inchworms',
     'Glute Bridges',
     'Bicycle Crunches',
-    'Supermans',
     'Step-Ups (on stairs)',
     'Wall Push Ups',
     'Reverse Lunges',
@@ -92,13 +178,12 @@ class _HomePageState extends State<HomePage>
     'Standing Calf Raises',
     'Side Lunges',
     'Squat Jumps',
-    'Plank Up-Downs',
     'Clapping Push Ups',
     'Flutter Kicks',
     'Hip Thrusts',
     'Spiderman Push Ups',
-    'Diamond Push Ups',
   ];
+
   final List<String> stopwatchExercises = [
     'Plank',
     'Wall Sit',
@@ -108,12 +193,11 @@ class _HomePageState extends State<HomePage>
     'Bear Crawl',
     'Side Plank (Left)',
     'Side Plank (Right)',
-    'Reverse Plank',
+    'Reverse Plank Hold',
     'Superman Hold',
     'Mountain Climbers (Timed)',
     'Jump Rope (Imaginary)',
     'Shadow Boxing',
-    'Arm Circles',
     'Tuck Jumps',
     'Star Jumps',
     'Knee Plank',
@@ -132,6 +216,7 @@ class _HomePageState extends State<HomePage>
     'Boat Pose',
     'Crab Hold',
   ];
+
   bool _isMusicSearching = false;
   String _musicSearchText = '';
 
@@ -150,17 +235,29 @@ class _HomePageState extends State<HomePage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AvatarProvider>(context, listen: false).loadUserName();
     });
+
+    // --- Load favorites/blocked on init ---
+    _loadFavAndBlocked();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  // --- FAVORITE/BLOCKED LOGIC ---
+
+  Future<void> _loadFavAndBlocked() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      favoriteSongIds = (prefs.getStringList('favoriteSongIds') ?? [])
+          .map((e) => int.tryParse(e))
+          .whereType<int>()
+          .toSet();
+      blockedSongIds = (prefs.getStringList('blockedSongIds') ?? [])
+          .map((e) => int.tryParse(e))
+          .whereType<int>()
+          .toSet();
+    });
   }
 
   void _showThemeDialog(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -273,14 +370,103 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  Future<void> _toggleFavorite(int songId) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (favoriteSongIds.contains(songId)) {
+        favoriteSongIds.remove(songId);
+      } else {
+        favoriteSongIds.add(songId);
+        blockedSongIds.remove(songId);
+      }
+    });
+    await prefs.setStringList(
+        'favoriteSongIds', favoriteSongIds.map((e) => e.toString()).toList());
+    await prefs.setStringList(
+        'blockedSongIds', blockedSongIds.map((e) => e.toString()).toList());
+  }
+
+  Future<void> _blockSong(int songId) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      blockedSongIds.add(songId);
+      favoriteSongIds.remove(songId);
+    });
+    await prefs.setStringList(
+        'blockedSongIds', blockedSongIds.map((e) => e.toString()).toList());
+    await prefs.setStringList(
+        'favoriteSongIds', favoriteSongIds.map((e) => e.toString()).toList());
+  }
+
+  Future<void> _unblockSong(int songId) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      blockedSongIds.remove(songId);
+    });
+    await prefs.setStringList(
+        'blockedSongIds', blockedSongIds.map((e) => e.toString()).toList());
+  }
+
+  void _showMusicList(MusicListMode mode) {
+    setState(() {
+      _musicListMode = mode;
+      _musicTabKey = UniqueKey();
+      _isMusicSearching = false;
+      _musicSearchText = "";
+    });
+  }
+
+  // --- END FAVORITE/BLOCKED LOGIC ---
   IconData getExerciseIcon(String name) {
     switch (name.toLowerCase()) {
+      // Arms
+      case 'tricep dips':
+      case 'bench dips':
+      case 'diamond push ups':
+      case 'plank up-downs':
+      case 'shoulder tap push ups':
+      case 'bicep curls (no equipment)':
+      case 'overhead arm clap':
+        return Icons.fitness_center;
+      case 'arm circles':
+        return Icons.loop;
+      // Shoulders
+      case 'pike push ups':
+      case 'shoulder press (no equipment)':
+      case 'plank to downward dog':
+      case 'wall walks':
+      case 'reverse snow angels':
+      case 'handstand hold (wall)':
+      case 'wall angels':
+      case 'shoulder i-y-t raises':
+      case 'scapular push ups':
+      case 'shoulder taps':
+      case 'front arm raises':
+      case 'lateral arm raises':
+      case 'arm haulers':
+      case 'prone press':
+        return Icons.outbond_rounded;
+      // Back
+      case 'supermans':
+      case 'reverse fly (no equipment)':
+      case 'prone y raise':
+      case 'inchworms':
+      case 'bird dog':
+      case 'standing t raises':
+      case 'hip hinge':
+      case 'swimmers':
+      case 'superman pull':
+      case 'bridge reach & roll':
+      case 'back extensions':
+      case 'doorway rows':
+      case 'elbow squeezes':
+      case 'cobra pose':
+        return Icons.sports_kabaddi;
+      // Home/Bodyweight General, Core, Cardio, etc.
       case 'push ups':
       case 'wall push ups':
-      case 'diamond push ups':
       case 'clapping push ups':
       case 'spiderman push ups':
-        return Icons.fitness_center;
       case 'sit ups':
       case 'crunches':
       case 'bicycle crunches':
@@ -292,7 +478,6 @@ class _HomePageState extends State<HomePage>
       case 'dead bug hold':
       case 'hollow body hold':
       case 'boat pose':
-        return Icons.self_improvement;
       case 'squats':
       case 'isometric squat':
       case 'squat jumps':
@@ -301,11 +486,13 @@ class _HomePageState extends State<HomePage>
       case 'lunges':
       case 'step-ups (on stairs)':
       case 'chair pose (yoga)':
+      case 'wall sit':
         return Icons.accessibility_new;
       case 'plank':
       case 'side plank (left)':
       case 'side plank (right)':
       case 'reverse plank':
+      case 'reverse plank hold':
       case 'plank up-downs':
       case 'knee plank':
         return Icons.horizontal_rule;
@@ -318,18 +505,13 @@ class _HomePageState extends State<HomePage>
       case 'bear crawl':
         return Icons.terrain;
       case 'burpees':
-      case 'inchworms':
-      case 'supermans':
-      case 'superman hold':
-        return Icons.sports_kabaddi;
       case 'high knees':
       case 'high knees (timed)':
       case 'butt kicks':
       case 'jog in place':
         return Icons.directions_run;
-      case 'tricep dips':
-      case 'hip thrusts':
       case 'glute bridges':
+      case 'hip thrusts':
       case 'hip bridge hold':
         return Icons.accessible_forward;
       case 'standing calf raises':
@@ -337,8 +519,6 @@ class _HomePageState extends State<HomePage>
       case 'donkey kicks':
       case 'bird dog hold':
         return Icons.pets;
-      case 'arm circles':
-        return Icons.loop;
       case 'shadow boxing':
         return Icons.sports_mma;
       case 'jump rope (imaginary)':
@@ -346,8 +526,6 @@ class _HomePageState extends State<HomePage>
       case 'single leg balance (left)':
       case 'single leg balance (right)':
         return Icons.accessibility;
-      case 'wall sit':
-        return Icons.event_seat;
       case 'side lying leg raise hold (left)':
       case 'side lying leg raise hold (right)':
         return Icons.airline_seat_legroom_extra;
@@ -357,6 +535,119 @@ class _HomePageState extends State<HomePage>
         return Icons.event;
       default:
         return Icons.sports_gymnastics;
+    }
+  }
+
+  String getExerciseCategory(String name) {
+    switch (name.toLowerCase()) {
+      // Arms
+      case 'tricep dips':
+      case 'bench dips':
+      case 'diamond push ups':
+      case 'plank up-downs':
+      case 'shoulder tap push ups':
+      case 'bicep curls (no equipment)':
+      case 'overhead arm clap':
+      case 'arm circles':
+        return "Arms";
+      // Shoulders
+      case 'pike push ups':
+      case 'shoulder press (no equipment)':
+      case 'plank to downward dog':
+      case 'wall walks':
+      case 'reverse snow angels':
+      case 'handstand hold (wall)':
+      case 'wall angels':
+      case 'shoulder i-y-t raises':
+      case 'scapular push ups':
+      case 'shoulder taps':
+      case 'front arm raises':
+      case 'lateral arm raises':
+      case 'arm haulers':
+      case 'prone press':
+        return "Shoulders";
+      // Back
+      case 'supermans':
+      case 'reverse fly (no equipment)':
+      case 'prone y raise':
+      case 'inchworms':
+      case 'bird dog':
+      case 'standing t raises':
+      case 'hip hinge':
+      case 'swimmers':
+      case 'superman pull':
+      case 'bridge reach & roll':
+      case 'back extensions':
+      case 'doorway rows':
+      case 'elbow squeezes':
+      case 'cobra pose':
+        return "Back";
+      // Home/Bodyweight General, Core, Cardio, etc.
+      case 'push ups':
+      case 'wall push ups':
+      case 'clapping push ups':
+      case 'spiderman push ups':
+        return "Chest";
+      case 'sit ups':
+      case 'crunches':
+      case 'bicycle crunches':
+      case 'leg raises':
+      case 'flutter kicks':
+      case 'heel touches':
+      case 'russian twists':
+      case 'v-sit hold':
+      case 'dead bug hold':
+      case 'hollow body hold':
+      case 'boat pose':
+      case 'plank':
+      case 'side plank (left)':
+      case 'side plank (right)':
+      case 'reverse plank':
+      case 'reverse plank hold':
+      case 'plank up-downs':
+      case 'hip thrusts':
+      case 'glute bridges':
+      case 'hip bridge hold':
+        return "Core";
+      case 'squats':
+      case 'isometric squat':
+      case 'squat jumps':
+      case 'side lunges':
+      case 'reverse lunges':
+      case 'lunges':
+      case 'step-ups (on stairs)':
+      case 'chair pose (yoga)':
+      case 'wall sit':
+      case 'standing calf raises':
+      case 'side lying leg raise hold (left)':
+      case 'side lying leg raise hold (right)':
+      case 'knee plank':
+        return "Legs";
+      case 'mountain climbers':
+      case 'mountain climbers (timed)':
+      case 'bear crawl':
+      case 'jump rope (imaginary)':
+      case 'jumping jacks':
+      case 'star jumps':
+      case 'tuck jumps':
+      case 'high knees':
+      case 'high knees (timed)':
+      case 'butt kicks':
+      case 'jog in place':
+        return "Cardio";
+      case 'shadow boxing':
+        return "Shoulders";
+      case 'donkey kicks':
+      case 'bird dog hold':
+      case 'crab hold':
+        return "Glutes";
+      case 'single leg balance (left)':
+      case 'single leg balance (right)':
+        return "Balance";
+      case 'l-sit hold (on floor or chairs)':
+        return "Flexibility";
+      default:
+        return "Other";
     }
   }
 
@@ -665,12 +956,16 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // --- MODIFIED: MUSIC TAB FILTER BAR ---
+
   Widget buildMusicLibrary() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Left: "Your Library" info
           Row(
             children: [
               Transform.rotate(
@@ -717,42 +1012,71 @@ class _HomePageState extends State<HomePage>
               ),
             ],
           ),
-          _isMusicSearching
-              ? Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: TextField(
-                      autofocus: true,
-                      onChanged: (val) =>
-                          setState(() => _musicSearchText = val),
-                      decoration: InputDecoration(
-                        hintText: "Search songs...",
-                        isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            setState(() {
-                              _isMusicSearching = false;
-                              _musicSearchText = "";
-                            });
-                          },
+          // Right: Favorite, Blocked, Search
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.favorite,
+                    color: _musicListMode == MusicListMode.favorite
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant),
+                tooltip: "Favorites",
+                onPressed: () => _showMusicList(
+                    _musicListMode == MusicListMode.favorite
+                        ? MusicListMode.all
+                        : MusicListMode.favorite),
+              ),
+              IconButton(
+                icon: Icon(Icons.block,
+                    color: _musicListMode == MusicListMode.blocked
+                        ? colorScheme.error
+                        : colorScheme.onSurfaceVariant),
+                tooltip: "Blocked",
+                onPressed: () => _showMusicList(
+                    _musicListMode == MusicListMode.blocked
+                        ? MusicListMode.all
+                        : MusicListMode.blocked),
+              ),
+              _isMusicSearching
+                  ? SizedBox(
+                      width: 160,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4.0),
+                        child: TextField(
+                          autofocus: true,
+                          onChanged: (val) =>
+                              setState(() => _musicSearchText = val),
+                          decoration: InputDecoration(
+                            hintText: "Search songs...",
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _isMusicSearching = false;
+                                  _musicSearchText = "";
+                                });
+                              },
+                            ),
+                          ),
                         ),
                       ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Iconsax.search_normal_1_copy),
+                      onPressed: () => setState(() => _isMusicSearching = true),
+                      tooltip: "Search songs",
                     ),
-                  ),
-                )
-              : IconButton(
-                  icon: const Icon(Iconsax.search_normal_1_copy),
-                  onPressed: () => setState(() => _isMusicSearching = true),
-                  tooltip: "Search songs",
-                ),
+            ],
+          ),
         ],
       ),
     );
   }
+  // --- END MUSIC TAB FILTER BAR ---
 
   Widget buildContentArea() {
     switch (selectedPill) {
@@ -766,6 +1090,7 @@ class _HomePageState extends State<HomePage>
               exerciseGoals: exerciseGoals,
               onEditGoal: editGoal,
               getExerciseIcon: getExerciseIcon,
+              getExerciseCategory: getExerciseCategory,
             ),
           ),
         );
@@ -794,8 +1119,24 @@ class _HomePageState extends State<HomePage>
                   const SizedBox(height: 0),
                   Expanded(
                     child: MusicTab(
+                      key: _musicTabKey,
                       onSongPlayed: () => setState(() {}),
                       searchText: _musicSearchText,
+                      mode: _musicListMode,
+                      favoriteSongIds: favoriteSongIds,
+                      blockedSongIds: blockedSongIds,
+                      onFavoriteToggle: (int songId) async {
+                        await _toggleFavorite(songId);
+                        setState(() {});
+                      },
+                      onBlock: (int songId) async {
+                        await _blockSong(songId);
+                        setState(() {});
+                      },
+                      onUnblock: (int songId) async {
+                        await _unblockSong(songId);
+                        setState(() {});
+                      },
                     ),
                   ),
                 ],
@@ -809,7 +1150,6 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     final musicBarProvider = Provider.of<MusicBarProvider>(context);
-    // ---- IMPLEMENTATION: Transparent System Bars ----
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -851,7 +1191,8 @@ class _HomePageState extends State<HomePage>
   }
 }
 
-// Custom Switch with Android Thumb
+// --------- THE REST IS YOUR ORIGINAL CODE (SWITCHES ETC) ---------
+
 class _AndroidSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -885,7 +1226,6 @@ class _AndroidSwitch extends StatelessWidget {
   }
 }
 
-// Custom Switch for Dark Mode with sun/moon thumb
 class _DarkModeSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -920,7 +1260,6 @@ class _DarkModeSwitch extends StatelessWidget {
   }
 }
 
-// Custom Switch for Glass Music Player toggle
 class GlassMusicPlayerSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;

@@ -9,6 +9,8 @@ class ExerciseList extends StatefulWidget {
   final Map<String, int> exerciseGoals;
   final void Function(String exerciseName, int newGoal) onEditGoal;
   final IconData Function(String) getExerciseIcon;
+  // This should return a category for each exercise, e.g., "Chest", "Back", etc.
+  final String Function(String) getExerciseCategory;
 
   const ExerciseList({
     Key? key,
@@ -17,6 +19,7 @@ class ExerciseList extends StatefulWidget {
     required this.exerciseGoals,
     required this.onEditGoal,
     required this.getExerciseIcon,
+    required this.getExerciseCategory,
   }) : super(key: key);
 
   @override
@@ -29,16 +32,40 @@ class _ExerciseListState extends State<ExerciseList> {
   String? _editingExercise;
   final Duration _popupDuration = const Duration(milliseconds: 400);
 
+  // Sorting/filtering
+  final List<String> _categories = [
+    'All',
+    'Arms',
+    'Legs',
+    'Chest',
+    'Back',
+    'Shoulders',
+    'Core',
+    'Cardio'
+  ];
+  String _selectedCategory = 'All';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final exercises = [...widget.goalExercises, ...widget.stopwatchExercises];
-    final filteredExercises = _searchText.isEmpty
-        ? exercises
-        : exercises
-            .where((e) => e.toLowerCase().contains(_searchText.toLowerCase()))
-            .toList();
+    List<String> filteredExercises = exercises;
+
+    // Filter by category
+    if (_selectedCategory != 'All') {
+      filteredExercises = filteredExercises.where((e) {
+        final cat = widget.getExerciseCategory(e);
+        return cat.toLowerCase() == _selectedCategory.toLowerCase();
+      }).toList();
+    }
+
+    // Filter by search
+    if (_searchText.isNotEmpty) {
+      filteredExercises = filteredExercises
+          .where((e) => e.toLowerCase().contains(_searchText.toLowerCase()))
+          .toList();
+    }
 
     return Stack(
       children: [
@@ -46,6 +73,8 @@ class _ExerciseListState extends State<ExerciseList> {
           children: [
             _buildWorkoutLibrary(context),
             const SizedBox(height: 12),
+            _buildCategoryRow(context),
+            const SizedBox(height: 8),
             Expanded(
               child: ListView.builder(
                 padding:
@@ -308,6 +337,49 @@ class _ExerciseListState extends State<ExerciseList> {
                   ),
                 ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: _categories.map((category) {
+          final bool isSelected = _selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: ChoiceChip(
+              label: Text(
+                category,
+                style: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedCategory = category;
+                });
+              },
+              backgroundColor: colorScheme.surfaceVariant,
+              selectedColor: colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              labelPadding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
+              elevation: isSelected ? 1.5 : 0,
+              pressElevation: 1.5,
+            ),
+          );
+        }).toList(),
       ),
     );
   }
